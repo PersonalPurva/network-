@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CompTIA Network+ N10-009 Study Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .chart-container { position:relative; width:100%; max-width:320px; margin:auto; height:280px; }
+        body { background-color:#f8fafc; }
+        .tab-active   { border-bottom:3px solid #dc2626; color:#dc2626; font-weight:700; }
+        .tab-inactive { border-bottom:3px solid transparent; color:#64748b; }
+        .tab-inactive:hover { color:#1e293b; }
+        .book-badge { display:inline-block; font-size:10px; font-weight:600; background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; border-radius:4px; padding:1px 6px; margin-left:6px; white-space:nowrap; }
+    </style>
+</head>
+<body class="text-slate-800 font-sans antialiased">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+    <!-- HEADER -->
+    <header class="mb-8 border-b border-slate-200 pb-6">
+        <div class="flex items-center gap-3 mb-2">
+            <span class="text-4xl">🌐</span>
+            <div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">CompTIA Network+ Study Tracker</h1>
+                <p class="text-slate-500 text-sm font-medium mt-1">Exam: N10-009 V9 · Objectives v6.0 · Paired with <em>Computer Networking: A Top-Down Approach</em> — Kurose &amp; Ross, 6th Ed.</p>
+            </div>
+        </div>
+        <p class="mt-3 text-base text-slate-600 max-w-4xl">Track every exam objective, book chapter, homework problem, and lab exercise in one place. Two tabs: the <strong>Exam Checklist</strong> mirrors the official N10-009 domains, while the <strong>Book Study Plan</strong> walks you through Kurose &amp; Ross chapter-by-chapter with mapped labs.</p>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+            <div class="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm">
+                <span class="font-bold text-red-700">Exam N10-009</span>
+                <span class="text-red-600"> · Max 90 Qs · 90 min · No passing score published (scaled)</span>
+            </div>
+            <div class="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm">
+                <span class="font-bold text-blue-700">Recommended XP</span>
+                <span class="text-blue-600"> · 9–12 months IT networking field experience</span>
+            </div>
+            <div class="bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-sm">
+                <span class="font-bold text-emerald-700">Book</span>
+                <span class="text-emerald-600"> · Kurose &amp; Ross, 6th Ed · 9 Chapters + Labs</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- TABS -->
+    <div class="flex gap-1 border-b border-slate-200 mb-8">
+        <button id="tab-exam"  onclick="switchTab('exam')"  class="px-6 py-3 text-sm transition-all tab-active">📋 Exam Checklist — N10-009 Domains</button>
+        <button id="tab-book" onclick="switchTab('book')" class="px-6 py-3 text-sm transition-all tab-inactive">📖 Book Study Plan — Kurose &amp; Ross</button>
+    </div>
+
+    <!-- ═══════════════════════════════ EXAM TAB ═══════════════════════════════ -->
+    <div id="panel-exam" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2 space-y-6">
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-1">📋 N10-009 Exam Objectives</h2>
+                <p class="text-slate-500 text-sm mb-5">Each item includes the official sub-objective text. Blue badges show the matching Kurose &amp; Ross chapter(s) for deeper study.</p>
+                <div id="syllabus-exam" class="space-y-4"></div>
+            </section>
+        </div>
+        <div class="space-y-6">
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-lg font-bold text-slate-800 mb-1">📊 Exam Readiness</h2>
+                <p class="text-slate-500 text-xs mb-3 text-center">Domain-by-domain completion</p>
+                <div class="chart-container"><canvas id="chart-exam"></canvas></div>
+                <div class="mt-4 text-center">
+                    <span class="text-3xl font-black text-red-600" id="total-exam">0%</span>
+                    <span class="text-xs font-medium text-slate-400 uppercase tracking-wider block">Total Completion</span>
+                </div>
+            </section>
+            <section class="bg-red-50 border border-red-100 rounded-xl p-5">
+                <h2 class="text-base font-bold text-red-900 mb-2">📝 Domain Weights</h2>
+                <ul class="space-y-2 text-sm">
+                    <li class="flex justify-between"><span class="text-red-800">1.0 Networking Concepts</span><span class="font-bold text-red-700">23%</span></li>
+                    <li class="flex justify-between"><span class="text-red-800">2.0 Network Implementation</span><span class="font-bold text-red-700">20%</span></li>
+                    <li class="flex justify-between"><span class="text-red-800">3.0 Network Operations</span><span class="font-bold text-red-700">19%</span></li>
+                    <li class="flex justify-between"><span class="text-red-800">4.0 Network Security</span><span class="font-bold text-red-700">14%</span></li>
+                    <li class="flex justify-between"><span class="text-red-800">5.0 Network Troubleshooting</span><span class="font-bold text-red-700">24%</span></li>
+                </ul>
+            </section>
+            <section class="bg-blue-50 border border-blue-100 rounded-xl p-5">
+                <h2 class="text-base font-bold text-blue-900 mb-2">📚 Book → Exam Map</h2>
+                <ul class="space-y-1 text-xs text-blue-800">
+                    <li><strong>Ch.1</strong> — Domain 1 (OSI, topologies)</li>
+                    <li><strong>Ch.2</strong> — Domain 1 (ports/protocols/DNS)</li>
+                    <li><strong>Ch.3</strong> — Domain 1 (TCP/UDP) + Domain 5</li>
+                    <li><strong>Ch.4</strong> — Domain 1 (IPv4/IPv6) + Domain 2 (routing)</li>
+                    <li><strong>Ch.5</strong> — Domain 2 (switching/VLANs)</li>
+                    <li><strong>Ch.6</strong> — Domain 2 (wireless)</li>
+                    <li><strong>Ch.7</strong> — Domain 1 (CDN/cloud) + Domain 3</li>
+                    <li><strong>Ch.8</strong> — Domain 4 (security)</li>
+                    <li><strong>Ch.9</strong> — Domain 3 (SNMP/monitoring)</li>
+                </ul>
+            </section>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════ BOOK TAB ═══════════════════════════════ -->
+    <div id="panel-book" class="grid grid-cols-1 lg:grid-cols-3 gap-8 hidden">
+        <div class="lg:col-span-2 space-y-6">
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-xl font-bold text-slate-800 mb-1">📖 Kurose &amp; Ross — Chapter Study Plan</h2>
+                <p class="text-slate-500 text-sm mb-5">For each chapter: read the sections, complete the highlighted review questions (homework), and finish the end-of-chapter labs / Wireshark exercises.</p>
+                <div id="syllabus-book" class="space-y-4"></div>
+            </section>
+        </div>
+        <div class="space-y-6">
+            <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                <h2 class="text-lg font-bold text-slate-800 mb-1">📊 Book Progress</h2>
+                <p class="text-slate-500 text-xs mb-3 text-center">Chapter-by-chapter completion</p>
+                <div class="chart-container"><canvas id="chart-book"></canvas></div>
+                <div class="mt-4 text-center">
+                    <span class="text-3xl font-black text-emerald-600" id="total-book">0%</span>
+                    <span class="text-xs font-medium text-slate-400 uppercase tracking-wider block">Total Completion</span>
+                </div>
+            </section>
+            <section class="bg-emerald-50 border border-emerald-100 rounded-xl p-5">
+                <h2 class="text-base font-bold text-emerald-900 mb-2">🔬 Available Labs</h2>
+                <ul class="space-y-1 text-xs text-emerald-800">
+                    <li>🦈 <strong>Wireshark</strong> — HTTP, DNS, TCP, UDP, IP, ICMP, Ethernet, 802.11</li>
+                    <li>🐍 <strong>Python Sockets</strong> — UDP/TCP client-server, ICMP Ping, SMTP</li>
+                    <li>🖥️ <strong>Routing</strong> — GNS3/Packet Tracer: OSPF, BGP, static routes</li>
+                    <li>🔒 <strong>Security</strong> — TLS/SSL capture, ARP poisoning demo</li>
+                    <li>📡 <strong>Wireless</strong> — WPA2/WPA3 configuration lab</li>
+                    <li>☁️ <strong>Cloud</strong> — AWS VPC setup, DHCP/DNS config</li>
+                </ul>
+            </section>
+            <section class="bg-amber-50 border border-amber-100 rounded-xl p-5">
+                <h2 class="text-base font-bold text-amber-900 mb-2">💡 Study Tips</h2>
+                <ul class="space-y-1 text-xs text-amber-800">
+                    <li>✅ Read section → do review Qs immediately</li>
+                    <li>✅ Run Wireshark alongside every protocol chapter</li>
+                    <li>✅ Map each topic to N10-009 domain before moving on</li>
+                    <li>✅ Do PBQ practice after completing each domain</li>
+                    <li>✅ Use packet tracer for all routing/switching labs</li>
+                </ul>
+            </section>
+        </div>
+    </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  EXAM DATA  (N10-009 domains)
+// ══════════════════════════════════════════════
+const examData = [
+  {
+    id:'e-d1', title:'1.0 Networking Concepts (23%)', icon:'🔌',
+    topics:[
+      {id:'e-1-1', text:'1.1 — OSI Reference Model: Layer 1 Physical, Layer 2 Data Link, Layer 3 Network, Layer 4 Transport, Layer 5 Session, Layer 6 Presentation, Layer 7 Application — encapsulation at each layer', book:'Ch.1'},
+      {id:'e-1-2', text:'1.2 — Networking Appliances, Applications & Functions: Router, Switch, Firewall, IDS/IPS, Load balancer, Proxy, NAS, SAN, Wireless AP/Controller; CDN applications; VPN, QoS, TTL functions', book:'Ch.1, Ch.4'},
+      {id:'e-1-3', text:'1.3 — Cloud Concepts & Connectivity: NFV, VPC, Network security groups/lists, Cloud gateways (Internet gateway, NAT gateway), Cloud connectivity (VPN, Direct Connect), Deployment models (Public/Private/Hybrid), Service models (SaaS/IaaS/PaaS), Scalability, Elasticity, Multitenancy', book:'Ch.7'},
+      {id:'e-1-4', text:'1.4 — Ports, Protocols, Services & Traffic Types: FTP(20/21), SFTP/SSH(22), Telnet(23), SMTP(25), DNS(53), DHCP(67/68), TFTP(69), HTTP(80), NTP(123), SNMP(161/162), LDAP(389), HTTPS(443), SMB(445), Syslog(514), SMTPS(587), LDAPS(636), SQL(1433), RDP(3389), SIP(5060/61); IP types: ICMP, TCP, UDP, GRE, IPSec(AH/ESP/IKE); Traffic: Unicast, Multicast, Anycast, Broadcast', book:'Ch.2, Ch.3'},
+      {id:'e-1-5', text:'1.5 — Transmission Media & Transceivers: Wireless (802.11, Cellular, Satellite); Wired (802.3, Single-mode vs. multimode fiber, DAC/Twinaxial, Coaxial, Cable speeds, Plenum vs. non-plenum); Transceivers (Ethernet/FC protocols, SFP/QSFP form factors); Connectors (SC, LC, ST, MPO, RJ11, RJ45, F-type, BNC)', book:'Ch.1'},
+      {id:'e-1-6', text:'1.6 — Network Topologies, Architectures & Types: Mesh, Hybrid, Star/Hub-and-spoke, Spine-and-leaf, Point-to-point, Three-tier hierarchical model (Core/Distribution/Access), Collapsed core, Traffic flows (North-south, East-west)', book:'Ch.1, Ch.5'},
+      {id:'e-1-7', text:'1.7 — IPv4 Network Addressing: Public vs. private (APIPA, RFC1918, Loopback/localhost); Subnetting (VLSM, CIDR); IPv4 address classes (A, B, C, D, E)', book:'Ch.4'},
+      {id:'e-1-8', text:'1.8 — Modern Network Environments: SDN/SD-WAN (Application-aware, Zero-touch provisioning, Transport-agnostic, Central policy management); VXLAN (DCI, Layer 2 encapsulation); ZTA (Policy-based auth, Authorization, Least privilege); SASE/SSE; IaC (Automation: Playbooks/Config drift/Upgrades/Dynamic inventories; Source control: Version control/Central repo/Conflict ID/Branching); IPv6 (Mitigating exhaustion, Tunneling/Dual stack/NAT64)', book:'Ch.4, Ch.8'},
+    ]
+  },
+  {
+    id:'e-d2', title:'2.0 Network Implementation (20%)', icon:'⚙️',
+    topics:[
+      {id:'e-2-1', text:'2.1 — Routing Technologies: Static routing; Dynamic routing (BGP, EIGRP, OSPF); Route selection (Administrative distance, Prefix length, Metric); Address translation (NAT, PAT); First Hop Redundancy Protocol (FHRP); Virtual IP (VIP); Subinterfaces', book:'Ch.4'},
+      {id:'e-2-2', text:'2.2 — Switching Technologies & Features: VLAN (VLAN database, Switch virtual interface SVI); Interface config (Native VLAN, Voice VLAN, 802.1Q tagging, Link aggregation, Speed, Duplex); Spanning tree; MTU/Jumbo frames', book:'Ch.5'},
+      {id:'e-2-3', text:'2.3 — Wireless Devices & Technologies: Channels (width, non-overlapping, regulatory/802.11h); Frequencies (2.4/5/6 GHz, Band steering); SSID (BSSID, ESSID); Network types (Mesh, Ad hoc, Point-to-point, Infrastructure); Encryption (WPA2, WPA3); Guest networks/Captive portals; Authentication (PSK vs. Enterprise); Antennas (omnidirectional vs. directional); Autonomous vs. lightweight AP', book:'Ch.6'},
+      {id:'e-2-4', text:'2.4 — Physical Installations: Locations (IDF, MDF), Rack size, Port-side exhaust/intake, Cabling (Patch panel, Fiber distribution panel), Lockable; Power (UPS, PDU, Power load, Voltage); Environmental factors (Humidity, Fire suppression, Temperature)', book:'Ch.1'},
+    ]
+  },
+  {
+    id:'e-d3', title:'3.0 Network Operations (19%)', icon:'🖥️',
+    topics:[
+      {id:'e-3-1', text:'3.1 — Organizational Processes & Procedures: Documentation (Physical/logical diagrams, Rack diagrams, Cable maps, Network diagrams L1/L2/L3, Asset inventory H/W/S/Licensing/Warranty, IPAM, SLA, Wireless survey/heat map); Life-cycle management (EOL, EOS, Software management: Patches/OS/Firmware, Decommissioning); Change management (Request tracking); Configuration management (Production/Backup/Baseline-golden configs)', book:'Ch.9'},
+      {id:'e-3-2', text:'3.2 — Network Monitoring Technologies: Methods — SNMP (Traps, MIB, v2c/v3, Community strings, Auth), Flow data, Packet capture, Baseline metrics/Anomaly alerting, Log aggregation (Syslog collector, SIEM), API integration, Port mirroring; Solutions — Network discovery (Ad hoc/Scheduled), Traffic analysis, Performance/Availability/Configuration monitoring', book:'Ch.9'},
+      {id:'e-3-3', text:'3.3 — Disaster Recovery Concepts: DR metrics (RPO, RTO, MTTR, MTBF); DR sites (Cold, Warm, Hot); High-availability (Active-active, Active-passive); Testing (Tabletop exercises, Validation tests)', book:'Ch.9'},
+      {id:'e-3-4', text:'3.4 — IPv4 and IPv6 Network Services: DHCP (Reservations, Scope, Lease time, Options, Relay/IP helper, Exclusions), SLAAC; DNS (DNSSEC, DoH, DoT, Record types A/AAAA/CNAME/MX/TXT/NS/PTR, Zone types Forward/Reverse, Authoritative/non-authoritative, Primary/secondary, Recursive, Hosts file); Time protocols (NTP, PTP, NTS)', book:'Ch.2, Ch.4'},
+      {id:'e-3-5', text:'3.5 — Network Access & Management Methods: Site-to-site VPN; Client-to-site VPN (Clientless, Split tunnel vs. full tunnel); Connection methods (SSH, GUI, API, Console); Jump box/host; In-band vs. out-of-band management', book:'Ch.8'},
+    ]
+  },
+  {
+    id:'e-d4', title:'4.0 Network Security (14%)', icon:'🔐',
+    topics:[
+      {id:'e-4-1', text:'4.1 — Basic Network Security Concepts: Logical security — Encryption (data in transit/at rest), Certificates (PKI, Self-signed), IAM (Authentication: MFA/SSO/RADIUS/LDAP/SAML/TACACS+/Time-based; Authorization: Least privilege/Role-based), Geofencing; Physical security (Cameras, Locks); Deception (Honeypot, Honeynet); Security terminology (Risk, Vulnerability, Exploit, Threat, CIA triad); Audits (Data locality, PCI DSS, GDPR); Network segmentation (IoT/IIoT, SCADA/ICS/OT, Guest, BYOD)', book:'Ch.8'},
+      {id:'e-4-2', text:'4.2 — Types of Attacks: DoS/DDoS, VLAN hopping, MAC flooding, ARP poisoning/spoofing, DNS poisoning/spoofing, Rogue DHCP/AP, Evil twin, On-path attack, Social engineering (Phishing, Dumpster diving, Shoulder surfing, Tailgating), Malware', book:'Ch.8'},
+      {id:'e-4-3', text:'4.3 — Network Security Features, Defense & Solutions: Device hardening (Disable unused ports/services, Change default passwords); NAC (Port security, 802.1X, MAC filtering); Key management; Security rules (ACL, URL filtering, Content filtering); Zones (Trusted vs. untrusted, Screened subnet)', book:'Ch.8'},
+    ]
+  },
+  {
+    id:'e-d5', title:'5.0 Network Troubleshooting (24%)', icon:'🔧',
+    topics:[
+      {id:'e-5-1', text:'5.1 — Troubleshooting Methodology: Identify problem (Gather info, Question users, Identify symptoms, Determine changes, Duplicate, Approach individually); Establish theory (Question obvious, Top-to-bottom/bottom-to-top OSI, Divide and conquer); Test theory; Establish plan; Implement/escalate; Verify full functionality + preventive measures; Document findings/actions/outcomes/lessons', book:'Ch.1'},
+      {id:'e-5-2', text:'5.2 — Cabling & Physical Interface Issues: Cable issues (Incorrect cable: single/multimode, Cat5/6/7/8, STP vs. UTP; Signal degradation: Crosstalk/Interference/Attenuation; Improper termination; TX/RX transposed); Interface issues (CRC, Runts, Giants, Drops; Port status: Error disabled/Admin down/Suspended); Hardware issues (PoE: Power budget exceeded/Incorrect standard; Transceiver mismatch/signal strength)', book:'Ch.1, Ch.5'},
+      {id:'e-5-3', text:'5.3 — Common Network Service Issues: Switching (STP: Network loops/Root bridge/Port roles & states, Incorrect VLAN assignment, ACLs); Route selection (Routing table, Default routes); Address pool exhaustion; Incorrect default gateway; Incorrect/duplicate IP address; Incorrect subnet mask', book:'Ch.4, Ch.5'},
+      {id:'e-5-4', text:'5.4 — Common Performance Issues: Congestion/contention, Bottlenecking, Bandwidth/Throughput capacity, Latency, Packet loss, Jitter; Wireless (Interference/Channel overlap, Signal degradation/loss, Insufficient coverage, Client disassociation, Roaming misconfiguration)', book:'Ch.3, Ch.6'},
+      {id:'e-5-5', text:'5.5 — Troubleshooting Tools & Protocols: Software (Protocol analyzer, CLI: ping/traceroute/nslookup/tcpdump/dig/netstat/ip-ifconfig-ipconfig/arp, Nmap, LLDP/CDP, Speed tester); Hardware (Toner, Cable tester, Taps, Wi-Fi analyzer, Visual fault locator); Device commands (show mac-address-table, show route, show interface, show config, show arp, show vlan, show power)', book:'Ch.1, Ch.9'},
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════
+//  BOOK DATA  (Kurose & Ross chapters)
+// ══════════════════════════════════════════════
+const bookData = [
+  {
+    id:'b-ch1', title:'Chapter 1 — Computer Networks and the Internet', icon:'🌍',
+    topics:[
+      {id:'b-1-read', text:'READ: §1.1 What is the Internet (Nuts-and-bolts, Services, Protocols) · §1.2 Network Edge (Access networks, Physical media) · §1.3 Network Core (Packet vs. Circuit switching, Network of networks) · §1.4 Delay, Loss & Throughput · §1.5 Protocol Layers & Service Models · §1.6 Networks under attack · §1.7 History'},
+      {id:'b-1-hw1',  text:'HOMEWORK: R1–R5 (Internet & protocol definitions), R10–R12 (access technologies), R16–R18 (packet vs. circuit switching), R20–R22 (delay & throughput), P6, P8 (queuing delay calculations), P10 (throughput problems)'},
+      {id:'b-1-lab',  text:'LAB: Wireshark Intro Lab — install Wireshark, capture first packets, identify Ethernet/IP/TCP headers, filter by protocol. Document at least 3 different protocol captures.'},
+    ]
+  },
+  {
+    id:'b-ch2', title:'Chapter 2 — Application Layer', icon:'📱',
+    topics:[
+      {id:'b-2-read', text:'READ: §2.1 Principles (Client-server/P2P, Process communication, Transport services, App-layer protocols) · §2.2 HTTP (Non-persistent/Persistent, Message format, Cookies, Web caching, Conditional GET) · §2.3 FTP · §2.4 Email (SMTP, POP3/IMAP) · §2.5 DNS (Services, Hierarchy, Records, Messages) · §2.6 P2P (BitTorrent, DHT) · §2.7 Socket programming (UDP & TCP)'},
+      {id:'b-2-hw1',  text:'HOMEWORK: R7–R10 (HTTP), R14–R16 (email protocols), R19–R22 (DNS), P1 (HTTP/1.0 vs 1.1 RTT), P5 (conditional GET), P7–P9 (DNS queries), P12 (web caching)'},
+      {id:'b-2-lab1', text:'LAB: Wireshark HTTP Lab — capture GET/response, examine persistent vs. non-persistent connections, inspect headers, cookies, and conditional GET 304 responses.'},
+      {id:'b-2-lab2', text:'LAB: Wireshark DNS Lab — capture DNS queries and responses, identify A/AAAA/CNAME/MX records, measure resolution time, observe caching behavior.'},
+      {id:'b-2-lab3', text:'LAB: Python Socket Programming — build a UDP echo server+client and a TCP file-transfer server+client. Test with telnet. Document the differences in behavior.'},
+    ]
+  },
+  {
+    id:'b-ch3', title:'Chapter 3 — Transport Layer', icon:'🚚',
+    topics:[
+      {id:'b-3-read', text:'READ: §3.1 Transport layer overview (Relationship with network layer, TCP/UDP in Internet) · §3.2 Multiplexing/demultiplexing · §3.3 UDP (Segment structure, Checksum) · §3.4 Reliable data transfer (Stop-and-wait, Go-Back-N, Selective Repeat) · §3.5 TCP (Connection, Segment structure, RTT estimation, Reliable transfer, Flow control, 3-way handshake) · §3.6 Congestion control (Causes/costs, Approaches, TCP Reno/AIMD) · §3.7 TCP Fairness'},
+      {id:'b-3-hw1',  text:'HOMEWORK: R2–R5 (multiplexing/demux), R10–R12 (UDP checksum), R17–R20 (reliable transfer), R26–R28 (TCP segment/RTT), R32–R34 (congestion control), P3 (UDP checksum), P6 (GBN/SR trace), P22–P24 (TCP sequence/ACK), P31 (congestion window)'},
+      {id:'b-3-lab1', text:'LAB: Wireshark TCP Lab — capture a full HTTP download, trace the 3-way handshake, measure RTT, identify slow start / congestion avoidance phases, observe flow control (rwnd).'},
+      {id:'b-3-lab2', text:'LAB: Wireshark UDP Lab — capture DNS (UDP), compare UDP vs. TCP segment structure, note absence of handshake and reliability mechanisms.'},
+    ]
+  },
+  {
+    id:'b-ch4', title:'Chapter 4 — The Network Layer', icon:'🗺️',
+    topics:[
+      {id:'b-4-read', text:'READ: §4.1 Network layer overview (Forwarding & routing, Network service models) · §4.2 Virtual circuit & datagram networks · §4.3 Router architecture (Input/output processing, Switching fabric, Queuing) · §4.4 IP (Datagram format, IPv4 addressing, DHCP, NAT) · §4.5 Routing algorithms (Link-state/Dijkstra, Distance-vector/Bellman-Ford) · §4.6 Routing in the Internet (OSPF, BGP) · §4.7 Broadcast and multicast'},
+      {id:'b-4-hw1',  text:'HOMEWORK: R4–R8 (IP datagram/fragmentation), R13–R16 (IP addressing/subnetting), R22–R25 (routing algorithms), R28–R31 (OSPF/BGP), P3 (fragmentation), P6–P8 (subnetting/CIDR), P15–P17 (Dijkstra), P21 (distance-vector), P28 (BGP path selection)'},
+      {id:'b-4-lab1', text:'LAB: Wireshark IP Lab — capture ICMP ping packets, examine IPv4 header fields (TTL, fragmentation, checksum), trace route with traceroute and correlate with Wireshark capture.'},
+      {id:'b-4-lab2', text:'LAB: Packet Tracer / GNS3 Routing Lab — configure static routes, OSPF on a 3-router topology, verify routing tables with "show ip route", test BGP peering.'},
+    ]
+  },
+  {
+    id:'b-ch5', title:'Chapter 5 — The Link Layer: Links, Access Networks, and LANs', icon:'🔗',
+    topics:[
+      {id:'b-5-read', text:'READ: §5.1 Link layer overview (Services, Error detection CRC/parity, Multiple access) · §5.2 Multiple access links (Channel partitioning, Random access: ALOHA/CSMA/CSMA-CD, Taking turns) · §5.3 Switched local area networks (MAC addresses & ARP, Ethernet, Switches: forwarding/filtering/self-learning, VLANs) · §5.4 Link virtualization (MPLS) · §5.5 Data center networking · §5.6 Retrospective: A day in the life of a web request'},
+      {id:'b-5-hw1',  text:'HOMEWORK: R2–R5 (error detection/CRC), R9–R12 (multiple access), R15–R18 (Ethernet/MAC/ARP), R21–R24 (switches/VLANs), P3 (CRC), P6 (CSMA/CD), P15 (ARP table trace), P19–P21 (switch forwarding)'},
+      {id:'b-5-lab1', text:'LAB: Wireshark Ethernet & ARP Lab — capture ARP request/reply, examine Ethernet II frame structure, observe MAC address resolution, identify broadcast vs. unicast frames.'},
+      {id:'b-5-lab2', text:'LAB: VLAN Configuration Lab (Packet Tracer) — create VLANs on a managed switch, configure trunk ports (802.1Q), set up inter-VLAN routing with a Layer 3 switch or router-on-a-stick.'},
+    ]
+  },
+  {
+    id:'b-ch6', title:'Chapter 6 — Wireless and Mobile Networks', icon:'📡',
+    topics:[
+      {id:'b-6-read', text:'READ: §6.1 Introduction (wireless vs. wired links, Infrastructure vs. ad hoc) · §6.2 Wireless links (SNR, BER, CDMA) · §6.3 IEEE 802.11 (Architecture, MAC protocol: CSMA/CA, 802.11 frame structure, Mobility in same subnet) · §6.4 Cellular Internet access (2G/3G/4G LTE architecture) · §6.5 Mobility (Principles, Mobile IP, 4G mobile) · §6.6 Wireless & mobility: Impact on higher-layer protocols'},
+      {id:'b-6-hw1',  text:'HOMEWORK: R2–R5 (wireless characteristics/SNR/BER), R9–R12 (802.11 architecture/CSMA-CA), R17–R19 (4G/LTE), R22–R24 (mobile IP/handover), P1 (SNR calculation), P5 (CSMA/CA hidden terminal), P10 (802.11 frame fields)'},
+      {id:'b-6-lab1', text:'LAB: Wireshark 802.11 Lab — capture Wi-Fi frames (monitor mode), identify beacon frames, probe requests, authentication, association, and data frames. Note SSID, BSSID, channel info.'},
+      {id:'b-6-lab2', text:'LAB: Wireless Security Lab — configure a WAP with WPA2-Personal and WPA2-Enterprise (RADIUS), capture 4-way handshake, compare WPA2 vs. WPA3 settings. Demonstrate captive portal setup.'},
+    ]
+  },
+  {
+    id:'b-ch7', title:'Chapter 7 — Multimedia Networking', icon:'🎬',
+    topics:[
+      {id:'b-7-read', text:'READ: §7.1 Multimedia networking applications · §7.2 Streaming stored video (HTTP streaming, DASH adaptive streaming, CDNs: Netflix/YouTube case studies) · §7.3 Voice-over-IP (VoIP, RTP, SIP) · §7.4 Real-time conversational video · §7.5 Network support for multimedia (Dimensioning best-effort, Differentiated services, Per-connection QoS guarantees)'},
+      {id:'b-7-hw1',  text:'HOMEWORK: R2–R5 (streaming/DASH), R8–R10 (CDN operation), R14–R16 (VoIP/RTP/SIP), R19–R21 (QoS/DiffServ), P1 (DASH adaptation), P5 (CDN request routing), P9 (VoIP packet loss/jitter), P12 (Weighted Fair Queuing)'},
+      {id:'b-7-lab',  text:'LAB: QoS Lab — configure DSCP markings on a router, implement priority queuing, capture and compare traffic handling for VoIP vs. bulk data. Measure jitter and packet loss with iPerf.'},
+    ]
+  },
+  {
+    id:'b-ch8', title:'Chapter 8 — Security in Computer Networks', icon:'🛡️',
+    topics:[
+      {id:'b-8-read', text:'READ: §8.1 What is network security? (CIA triad) · §8.2 Principles of cryptography (Symmetric: DES/AES, Public-key: RSA) · §8.3 Message integrity & Digital signatures (Hashing: MD5/SHA, MAC, PKI) · §8.4 End-point authentication · §8.5 Securing e-mail (PGP) · §8.6 Securing TCP connections: TLS/SSL · §8.7 Network-layer security: IPSec (AH, ESP, IKE, VPN) · §8.8 Securing wireless LANs (WEP flaws, 802.11i/WPA2) · §8.9 Operational security: Firewalls & IDS'},
+      {id:'b-8-hw1',  text:'HOMEWORK: R2–R5 (cryptography basics), R9–R12 (message integrity/digital sigs), R16–R18 (TLS handshake), R22–R25 (IPSec/VPN), R28–R30 (firewalls/IDS), P1 (RSA encryption), P5 (MAC/hash), P10 (TLS record structure), P14 (IPSec SA/SPI)'},
+      {id:'b-8-lab1', text:'LAB: Wireshark TLS/SSL Lab — capture HTTPS handshake, identify ClientHello/ServerHello/Certificate/Finished messages, examine cipher suite negotiation, note that application data is encrypted.'},
+      {id:'b-8-lab2', text:'LAB: Firewall & ACL Lab (Packet Tracer) — configure extended ACLs to permit/deny traffic by IP/port, implement a stateful firewall, test with permitted and blocked traffic. Add IDS signature rules.'},
+    ]
+  },
+  {
+    id:'b-ch9', title:'Chapter 9 — Network Management', icon:'📊',
+    topics:[
+      {id:'b-9-read', text:'READ: §9.1 What is network management? · §9.2 Infrastructure for network management (Managing entity, Managed devices, Management agent, MIB, Network management protocol) · §9.3 SNMP (PDU types: GetRequest/GetNextRequest/SetRequest/GetResponse/Trap, SNMPv1 vs. v2c vs. v3 security, Community strings vs. USM) · §9.4 ASN.1 · §9.5 ICMP-based network management'},
+      {id:'b-9-hw1',  text:'HOMEWORK: R2–R5 (SNMP architecture/MIB), R8–R10 (SNMP PDU types), R13–R15 (SNMPv3 security), P1 (SNMP GetRequest/Response trace), P4 (MIB OID walk), P7 (designing a monitoring system for a campus network)'},
+      {id:'b-9-lab',  text:'LAB: SNMP Monitoring Lab — install net-snmp (Linux), walk a MIB with snmpwalk, configure SNMPv3 users, set up a free NMS (e.g., Zabbix or LibreNMS) to poll a router, generate a Trap, capture with Wireshark. Also configure Syslog forwarding.'},
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+const SK = 'netplus_tracker_v2';
+let state = {};
+function saveState(){ try{ localStorage.setItem(SK, JSON.stringify(state)); }catch(e){} }
+function loadState(){ try{ const s=localStorage.getItem(SK); if(s) state=JSON.parse(s); }catch(e){} }
+
+// ══════════════════════════════════════════════
+//  CHARTS
+// ══════════════════════════════════════════════
+let charts = {};
+const examColors = ['#ef4444','#f97316','#22c55e','#8b5cf6','#3b82f6'];
+const bookColors = ['#6366f1','#06b6d4','#10b981','#f59e0b','#ec4899','#84cc16','#f97316','#8b5cf6','#14b8a6'];
+
+function initChart(id, data, colors) {
+    const ctx = document.getElementById('chart-'+id).getContext('2d');
+    charts[id] = new Chart(ctx, {
+        type:'doughnut',
+        data:{ labels: data.map(d=>d.title.split('(')[0].trim().substring(0,28)), datasets:[{data: new Array(data.length).fill(0), backgroundColor: colors, borderWidth:0, hoverOffset:4}] },
+        options:{ responsive:true, maintainAspectRatio:false, cutout:'72%', plugins:{ legend:{ position:'bottom', labels:{ padding:8, font:{size:10}, boxWidth:10 }}, tooltip:{ callbacks:{ label: ctx=>` ${ctx.raw}% done` }} } }
+    });
+}
+
+// ══════════════════════════════════════════════
+//  RENDER
+// ══════════════════════════════════════════════
+function renderSyllabus(panelId, data, accentColor) {
+    const container = document.getElementById('syllabus-'+panelId);
+    container.innerHTML = '';
+    data.forEach((domain, index) => {
+        if(!(domain.id in state)) {}
+        const domainDiv = document.createElement('div');
+        domainDiv.className = 'border border-slate-200 rounded-lg overflow-hidden';
+        const progressId = 'progress-'+domain.id;
+        const hdr = document.createElement('button');
+        hdr.className = 'w-full px-5 py-4 bg-slate-50 hover:bg-slate-100 flex justify-between items-center transition-colors';
+        hdr.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span class="text-xl">${domain.icon}</span>
+            <h3 class="font-bold text-slate-800 text-left text-sm">${domain.title}</h3>
+          </div>
+          <div class="flex items-center gap-3 flex-shrink-0">
+            <span id="${progressId}" class="text-xs font-semibold text-${accentColor}-600 bg-${accentColor}-100 px-2 py-1 rounded-full">0 / ${domain.topics.length}</span>
+            <span class="text-slate-400 text-xs accordion-icon">▼</span>
+          </div>`;
+        const contentDiv = document.createElement('div');
+        contentDiv.className = `px-5 py-4 bg-white border-t border-slate-200 ${index===0?'block':'hidden'}`;
+        hdr.onclick = () => {
+            const hidden = contentDiv.classList.contains('hidden');
+            contentDiv.classList.toggle('hidden', !hidden);
+            hdr.querySelector('.accordion-icon').textContent = hidden ? '▲' : '▼';
+        };
+        const ul = document.createElement('ul');
+        ul.className = 'space-y-3';
+        domain.topics.forEach(topic => {
+            if(!(topic.id in state)) state[topic.id] = false;
+            const li = document.createElement('li');
+            li.className = 'flex items-start gap-3 p-2 hover:bg-slate-50 rounded transition-colors';
+            const bookBadge = topic.book ? `<span class="book-badge">📖 ${topic.book}</span>` : '';
+            li.innerHTML = `
+              <div class="flex-shrink-0 pt-0.5">
+                <input type="checkbox" id="chk-${topic.id}" class="w-4 h-4 rounded border-slate-300 cursor-pointer" ${state[topic.id]?'checked':''}>
+              </div>
+              <label for="chk-${topic.id}" class="text-sm cursor-pointer select-none ${state[topic.id]?'text-slate-400 line-through':'text-slate-700'}">${topic.text}${bookBadge}</label>`;
+            const cb = li.querySelector('input');
+            const lbl = li.querySelector('label');
+            cb.onchange = e => {
+                state[topic.id] = e.target.checked;
+                saveState();
+                lbl.classList.toggle('text-slate-400', e.target.checked);
+                lbl.classList.toggle('line-through', e.target.checked);
+                lbl.classList.toggle('text-slate-700', !e.target.checked);
+                updateProgress(panelId, data);
+            };
+            ul.appendChild(li);
+        });
+        contentDiv.appendChild(ul);
+        domainDiv.appendChild(hdr);
+        domainDiv.appendChild(contentDiv);
+        container.appendChild(domainDiv);
+    });
+}
+
+function updateProgress(panelId, data) {
+    let totalChecked=0, totalTopics=0;
+    const chartData=[];
+    data.forEach(domain => {
+        let dc=0;
+        domain.topics.forEach(t=>{ if(state[t.id]){dc++;totalChecked++;} totalTopics++; });
+        const pct = Math.round((dc/domain.topics.length)*100);
+        const el = document.getElementById('progress-'+domain.id);
+        if(el) el.textContent = `${dc} / ${domain.topics.length}`;
+        chartData.push(pct);
+    });
+    const total = totalTopics>0 ? Math.round((totalChecked/totalTopics)*100) : 0;
+    document.getElementById('total-'+panelId).textContent = total+'%';
+    if(charts[panelId]){ charts[panelId].data.datasets[0].data=chartData; charts[panelId].update(); }
+}
+
+// ══════════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════════
+function switchTab(tab) {
+    document.getElementById('panel-exam').classList.toggle('hidden', tab!=='exam');
+    document.getElementById('panel-book').classList.toggle('hidden', tab!=='book');
+    document.getElementById('tab-exam').className  = 'px-6 py-3 text-sm transition-all '+(tab==='exam'?'tab-active':'tab-inactive');
+    document.getElementById('tab-book').className  = 'px-6 py-3 text-sm transition-all '+(tab==='book'?'tab-active':'tab-inactive');
+}
+
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+loadState();
+renderSyllabus('exam', examData, 'red');
+renderSyllabus('book', bookData, 'emerald');
+initChart('exam', examData, examColors);
+initChart('book', bookData, bookColors);
+updateProgress('exam', examData);
+updateProgress('book', bookData);
+</script>
+</body>
+</html>
