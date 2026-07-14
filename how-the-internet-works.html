@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How the Internet Works — explained from zero</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#f8fafc; color:#0f172a; scroll-behavior:smooth; }
+  .card { transition: box-shadow .15s, transform .15s; }
+  .card:hover { box-shadow:0 8px 24px -8px rgb(0 0 0 / .18); transform:translateY(-1px); }
+  .chk { accent-color:#10b981; width:1.15rem; height:1.15rem; cursor:pointer; flex-shrink:0; margin-top:2px; }
+  mark { background:#fde68a; padding:0 2px; border-radius:2px; }
+  .term { border-bottom:1.5px dotted #6366f1; font-weight:600; color:#4338ca; }
+  .kbd { font-family:ui-monospace,Menlo,Consolas,monospace; background:#eef2ff; color:#4338ca; padding:1px 6px; border-radius:5px; font-size:.85em; }
+  .sec-anchor { scroll-margin-top:5.5rem; }
+  ::-webkit-scrollbar { width:9px; height:9px; }
+  ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:6px; }
+  .flow-node { position:relative; }
+  .flow-node:not(:last-child)::after { content:"↓"; position:absolute; left:50%; bottom:-1.35rem; transform:translateX(-50%); color:#94a3b8; font-weight:700; }
+  details>summary { list-style:none; cursor:pointer; }
+  details>summary::-webkit-details-marker { display:none; }
+  details[open] .chev { transform:rotate(90deg); }
+  .chev { transition:transform .15s; }
+</style>
+</head>
+<body class="antialiased">
+
+<!-- HERO -->
+<header class="bg-gradient-to-r from-indigo-700 via-blue-700 to-sky-600 text-white">
+  <div class="max-w-6xl mx-auto px-6 py-9">
+    <div class="flex flex-wrap items-center gap-3 mb-3">
+      <span class="bg-white/20 text-xs font-bold px-3 py-1 rounded-full backdrop-blur">Networking · from zero</span>
+      <span class="bg-rose-500/30 text-xs font-bold px-3 py-1 rounded-full backdrop-blur">🛡️ cybersecurity lens throughout</span>
+      <span class="text-blue-100 text-sm">grounded in your Airtel-SIM example</span>
+    </div>
+    <h1 class="text-4xl font-extrabold tracking-tight">How the internet actually works</h1>
+    <p class="text-blue-100 mt-2 max-w-3xl leading-relaxed">Follow one request — from your laptop, through your phone's Airtel SIM, across the ocean, to a server abroad and back — and pick up every core networking concept on the way: <strong>LAN/WAN, IP &amp; NAT, DNS, the OSI &amp; TCP/IP layers, packets &amp; routing, submarine cables, and TLS</strong>. Tick each idea once you can teach it out loud. Progress saves automatically.</p>
+    <div class="flex flex-wrap gap-2 mt-5 text-xs">
+      <a href="#journey" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">1 · The journey</a>
+      <a href="#scope" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">2 · LAN vs WAN</a>
+      <a href="#ip" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">3 · IP &amp; NAT</a>
+      <a href="#dns" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">4 · DNS</a>
+      <a href="#layers" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">5 · The layers</a>
+      <a href="#packets" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">6 · Packets &amp; routing</a>
+      <a href="#physical" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">7 · Physical internet</a>
+      <a href="#web" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">8 · HTTP &amp; HTTPS</a>
+      <a href="#security" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">9 · Attacks per layer</a>
+      <a href="#cheat" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">10 · Cheat sheets</a>
+    </div>
+  </div>
+</header>
+
+<!-- PROGRESS BAR (sticky) -->
+<div class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-6xl mx-auto px-6 py-2.5 flex items-center gap-4">
+    <span class="text-xs font-semibold text-slate-600 whitespace-nowrap">🧠 Teach-back progress</span>
+    <div class="flex-1 h-2.5 bg-slate-200 rounded-full overflow-hidden"><div id="bar" class="h-full bg-emerald-500 rounded-full transition-all" style="width:0%"></div></div>
+    <span id="prog" class="text-xs font-bold text-emerald-700 whitespace-nowrap">0 / 0</span>
+    <button id="reset" class="text-xs text-slate-400 hover:text-rose-500">reset</button>
+  </div>
+</div>
+
+<main class="max-w-6xl mx-auto px-6 py-8 space-y-10">
+
+  <!-- MENTAL MODEL -->
+  <section class="card bg-indigo-50 border border-indigo-200 rounded-2xl p-6">
+    <h2 class="font-bold text-indigo-900 text-lg mb-2">🧭 The one-sentence mental model</h2>
+    <p class="text-slate-700 leading-relaxed">The internet is not one machine — it is <strong>millions of separate networks agreeing to forward each other's messages</strong>. Your data is chopped into small <span class="term">packets</span>, each stamped with a destination address, and every device in between only has one job: <em>look at the address, pass it one hop closer</em>. No single computer knows the whole path. That is the whole trick — and everything below is just the detail of how those hops happen.</p>
+  </section>
+
+  <!-- 1. THE JOURNEY -->
+  <section id="journey" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-indigo-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">1</span>
+      <h2 class="text-2xl font-bold text-slate-800">The journey of one request</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">You open a website on your laptop, tethered to your phone's Airtel data. Here is every stop your request makes. Each stop is a concept we unpack later — this is the map of the whole page.</p>
+
+    <div class="grid md:grid-cols-2 gap-5">
+      <!-- vertical flow -->
+      <div class="card bg-white border border-slate-200 rounded-2xl p-6 space-y-6">
+        <div class="flow-node bg-blue-50 border border-blue-200 rounded-xl p-3">
+          <p class="font-bold text-blue-800 text-sm">💻 Laptop <span class="text-xs font-normal text-blue-500">(private IP)</span></p>
+          <p class="text-xs text-slate-500 mt-0.5">Your device on the LAN. First it needs an IP for the name → <span class="kbd">DNS lookup</span>.</p>
+        </div>
+        <div class="flow-node bg-blue-50 border border-blue-200 rounded-xl p-3">
+          <p class="font-bold text-blue-800 text-sm">📱 Phone as hotspot <span class="text-xs font-normal text-blue-500">(NAT gateway)</span></p>
+          <p class="text-xs text-slate-500 mt-0.5">Runs the tiny LAN + rewrites your private IP → public. This is the LAN/WAN border.</p>
+        </div>
+        <div class="flow-node bg-teal-50 border border-teal-200 rounded-xl p-3">
+          <p class="font-bold text-teal-800 text-sm">📡 Airtel cell tower <span class="text-xs font-normal text-teal-500">(4G/5G radio)</span></p>
+          <p class="text-xs text-slate-500 mt-0.5">Your entry into Airtel's WAN, over radio waves.</p>
+        </div>
+        <div class="flow-node bg-teal-50 border border-teal-200 rounded-xl p-3">
+          <p class="font-bold text-teal-800 text-sm">🏢 Airtel core network <span class="text-xs font-normal text-teal-500">(CGNAT)</span></p>
+          <p class="text-xs text-slate-500 mt-0.5">Routes traffic, assigns a shared public IP, applies a second layer of NAT.</p>
+        </div>
+        <div class="flow-node bg-teal-50 border border-teal-200 rounded-xl p-3">
+          <p class="font-bold text-teal-800 text-sm">🔀 National backbone / IXP</p>
+          <p class="text-xs text-slate-500 mt-0.5">High-capacity fibre; Airtel hands your packet to peer networks.</p>
+        </div>
+        <div class="flow-node bg-teal-50 border border-teal-200 rounded-xl p-3">
+          <p class="font-bold text-teal-800 text-sm">🌊 Submarine cable landing</p>
+          <p class="text-xs text-slate-500 mt-0.5">Your data physically leaves India through undersea fibre.</p>
+        </div>
+        <div class="flow-node bg-teal-50 border border-teal-200 rounded-xl p-3">
+          <p class="font-bold text-teal-800 text-sm">🌐 Destination ISP</p>
+          <p class="text-xs text-slate-500 mt-0.5">A foreign network delivers the packet to the right building.</p>
+        </div>
+        <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+          <p class="font-bold text-emerald-800 text-sm">🖥️ Server (e.g. USA)</p>
+          <p class="text-xs text-slate-500 mt-0.5">Receives request, sends the reply back down the <em>same path in reverse</em>.</p>
+        </div>
+      </div>
+
+      <!-- key facts -->
+      <div class="space-y-4">
+        <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+          <h3 class="font-bold text-slate-800 mb-2">Three things to notice</h3>
+          <ul class="text-sm text-slate-600 space-y-2">
+            <li>• <strong>Every arrow is two-way.</strong> The reply retraces the exact hops backward; NAT and CGNAT reverse their translations so it lands on <em>your</em> laptop.</li>
+            <li>• <strong>Nobody sees the whole route.</strong> Each hop only knows the <em>next</em> hop. This is why the internet survives cables being cut — packets reroute.</li>
+            <li>• <strong>It's fast.</strong> This entire round trip usually takes ~50–250&nbsp;milliseconds, mostly limited by the speed of light in glass, not the computers.</li>
+          </ul>
+        </div>
+        <div class="card bg-amber-50 border border-amber-200 rounded-2xl p-5">
+          <h3 class="font-bold text-amber-900 mb-2">⚡ Before any of this: DNS</h3>
+          <p class="text-sm text-slate-700">You typed a <em>name</em> (<span class="kbd">google.com</span>), but packets need a <em>number</em> (an IP address). So step zero is always a DNS lookup — a mini round-trip through this same path just to ask "what's the address for this name?" We cover it in section 4.</p>
+        </div>
+        <div class="card bg-rose-50 border border-rose-200 rounded-2xl p-5">
+          <h3 class="font-bold text-rose-900 mb-2">🛡️ Security preview</h3>
+          <p class="text-sm text-slate-700">Every hop is a place an attacker could <em>read</em>, <em>redirect</em>, or <em>block</em> your data. That is why encryption (TLS) matters — it makes the middle hops carry data they can't read. Full attack map in section 9.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. SCOPE -->
+  <section id="scope" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-indigo-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">2</span>
+      <h2 class="text-2xl font-bold text-slate-800">Networks by scope — LAN, WAN, and friends</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">A network is just devices that can talk to each other. We classify them by <strong>how far they reach</strong>. The key exam idea: LAN vs WAN is about <em>scope and who controls it</em>, not the size of the cables.</p>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <p class="text-xs font-bold text-slate-400">PAN</p>
+        <p class="font-bold text-slate-800">Personal Area Network</p>
+        <p class="text-sm text-slate-600 mt-1">One person's devices, ~10 m. <strong>Bluetooth</strong> earbuds, smartwatch.</p>
+      </div>
+      <div class="card bg-blue-50 border border-blue-300 rounded-2xl p-5">
+        <p class="text-xs font-bold text-blue-400">LAN ⭐</p>
+        <p class="font-bold text-blue-800">Local Area Network</p>
+        <p class="text-sm text-slate-600 mt-1">One location you control — home, office, your phone's hotspot. Devices trust each other, use <strong>private IPs</strong>.</p>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <p class="text-xs font-bold text-slate-400">MAN</p>
+        <p class="font-bold text-slate-800">Metropolitan Area Network</p>
+        <p class="text-sm text-slate-600 mt-1">City-sized — a campus, a cable-TV network across a town.</p>
+      </div>
+      <div class="card bg-teal-50 border border-teal-300 rounded-2xl p-5">
+        <p class="text-xs font-bold text-teal-500">WAN ⭐</p>
+        <p class="font-bold text-teal-800">Wide Area Network</p>
+        <p class="text-sm text-slate-600 mt-1">Spans cities, countries, oceans. <strong>The internet is the biggest WAN</strong> — a network <em>of</em> networks you don't control.</p>
+      </div>
+    </div>
+
+    <div class="card bg-white border border-slate-200 rounded-2xl p-6">
+      <h3 class="font-bold text-slate-800 mb-3">Your Airtel setup, labelled</h3>
+      <div class="grid md:grid-cols-2 gap-5 text-sm text-slate-600">
+        <div>
+          <p class="font-semibold text-blue-700 mb-1">🔵 The LAN part</p>
+          <p>Your laptop joins your phone's Wi-Fi hotspot. That hotspot <strong>is</strong> a LAN — just those two devices. They get private IPs like <span class="kbd">192.168.43.5</span> and talk directly. The phone is the <span class="term">gateway</span>: the one door out.</p>
+        </div>
+        <div>
+          <p class="font-semibold text-teal-700 mb-1">🟢 The WAN part</p>
+          <p>The moment your data crosses the phone into Airtel's radio network, it's on the WAN — Airtel's network, then other networks, then undersea to a foreign network. You control none of it; they all just agree to forward your packets.</p>
+        </div>
+      </div>
+      <p class="text-xs text-slate-400 mt-4">A router that also does wireless (your phone hotspot, a home Wi-Fi box) is really 3 things in one: a <strong>switch</strong> (connects LAN devices), a <strong>router</strong> (finds the path out), and an <strong>access point</strong> (the radio). Good to separate these in your head — the exam does.</p>
+    </div>
+  </section>
+
+  <!-- 3. IP & NAT -->
+  <section id="ip" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-indigo-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">3</span>
+      <h2 class="text-2xl font-bold text-slate-800">Addresses — IP, private vs public, and NAT</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">For packets to find each other, every device needs an address. There are actually <strong>two</strong> addresses in play at every moment — one for the local link, one for the whole internet.</p>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-5">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-1">MAC address <span class="text-xs font-normal text-slate-400">(the hardware ID)</span></h3>
+        <p class="text-sm text-slate-600">Burned into every network chip, e.g. <span class="kbd">A4:83:E7:2B:1C:90</span>. Used only <strong>inside one LAN hop</strong> — "which physical device on this link?" It never travels across the internet. Changes at every hop.</p>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-1">IP address <span class="text-xs font-normal text-slate-400">(the delivery address)</span></h3>
+        <p class="text-sm text-slate-600">Logical, assigned by the network, e.g. <span class="kbd">142.250.183.14</span>. Used <strong>end-to-end</strong> across the whole internet — "which network, which host?" This is what routing uses.</p>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-5">
+      <div class="card bg-blue-50 border border-blue-200 rounded-2xl p-5">
+        <h3 class="font-bold text-blue-800 mb-1">Private IP</h3>
+        <p class="text-sm text-slate-600">Works only inside a LAN. Reserved ranges you'll recognise: <span class="kbd">10.x.x.x</span>, <span class="kbd">172.16–31.x.x</span>, <span class="kbd">192.168.x.x</span>. Millions of homes reuse the same ones — that's fine, they never appear on the open internet.</p>
+      </div>
+      <div class="card bg-teal-50 border border-teal-200 rounded-2xl p-5">
+        <h3 class="font-bold text-teal-800 mb-1">Public IP</h3>
+        <p class="text-sm text-slate-600">Globally unique, routable on the internet. Handed out (in blocks) by regional registries → ISPs. This is the address the outside world sees you as.</p>
+      </div>
+    </div>
+
+    <div class="card bg-white border border-slate-200 rounded-2xl p-6 mb-5">
+      <h3 class="font-bold text-slate-800 mb-2">NAT — the translator at the border</h3>
+      <p class="text-sm text-slate-600 mb-3"><span class="term">NAT (Network Address Translation)</span> is what your phone/router does at the LAN↔WAN border. It rewrites the packet's "from" address from your private IP to the one public IP, and keeps a table so replies come back to the right device.</p>
+      <div class="bg-slate-50 rounded-xl p-4 font-mono text-xs text-slate-700 overflow-x-auto">
+        <p>OUT: <span class="text-blue-600">192.168.43.5</span>:51000 &nbsp;→&nbsp; rewritten to <span class="text-teal-600">public-IP</span>:51000 &nbsp;→&nbsp; server</p>
+        <p class="mt-1">IN:&nbsp; server &nbsp;→&nbsp; <span class="text-teal-600">public-IP</span>:51000 &nbsp;→&nbsp; looked up in table &nbsp;→&nbsp; <span class="text-blue-600">192.168.43.5</span></p>
+      </div>
+      <p class="text-sm text-slate-600 mt-3">Why it exists: there are only ~4.3&nbsp;billion IPv4 addresses — not enough for every device. NAT lets a whole household share <strong>one</strong> public IP. It also acts as an accidental firewall: unrequested inbound traffic has no table entry, so it's dropped.</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="card bg-rose-50 border border-rose-200 rounded-2xl p-5">
+        <h3 class="font-bold text-rose-900 mb-1">CGNAT — why mobile is special</h3>
+        <p class="text-sm text-slate-700">On Airtel mobile data, you usually sit behind <span class="term">CGNAT (Carrier-Grade NAT)</span>: <strong>thousands</strong> of subscribers share one public IP pool. So your "public IP" isn't really yours. That's <em>two</em> layers of NAT (phone + carrier) stacked.</p>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-1">IPv4 vs IPv6</h3>
+        <p class="text-sm text-slate-600"><span class="kbd">IPv4</span> = 32-bit, ~4.3B addresses, running out. <span class="kbd">IPv6</span> = 128-bit (e.g. <span class="kbd">2001:db8::1</span>), effectively unlimited, so devices can have their own public address and skip NAT. Adoption is gradual; both run side by side today.</p>
+      </div>
+    </div>
+    <p class="text-xs text-slate-400 mt-3">🛡️ Security note: because CGNAT shares one IP across many users, an IP address alone rarely identifies one person on mobile — relevant to logging, abuse tracking, and why "we traced the IP" is weaker evidence than TV suggests.</p>
+  </section>
+
+  <!-- 4. DNS -->
+  <section id="dns" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-indigo-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">4</span>
+      <h2 class="text-2xl font-bold text-slate-800">DNS — the internet's phonebook</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">You remember <span class="kbd">youtube.com</span>; routers only understand numbers. <span class="term">DNS (Domain Name System)</span> translates names → IP addresses. It happens before your request even starts.</p>
+
+    <div class="card bg-white border border-slate-200 rounded-2xl p-6 mb-4">
+      <h3 class="font-bold text-slate-800 mb-3">The lookup, step by step</h3>
+      <ol class="text-sm text-slate-600 space-y-2 list-decimal list-inside">
+        <li>Your device checks its own <strong>cache</strong> (did we look this up recently?).</li>
+        <li>If not, it asks a <strong>resolver</strong> (usually your ISP's, e.g. Airtel's, or a public one like <span class="kbd">8.8.8.8</span> / <span class="kbd">1.1.1.1</span>).</li>
+        <li>The resolver asks a <strong>root</strong> server → "where's <span class="kbd">.com</span>?"</li>
+        <li>Then the <strong>.com TLD</strong> server → "where's <span class="kbd">youtube.com</span>?"</li>
+        <li>Then youtube's <strong>authoritative</strong> server → "here's the IP: <span class="kbd">142.250.x.x</span>."</li>
+        <li>Resolver caches the answer (for its <span class="kbd">TTL</span>) and hands it back. <em>Now</em> your real request begins.</li>
+      </ol>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4">
+      <div class="card bg-slate-50 border border-slate-200 rounded-2xl p-4">
+        <p class="font-bold text-slate-700 text-sm">Record types worth knowing</p>
+        <ul class="text-xs text-slate-600 mt-2 space-y-1">
+          <li><span class="kbd">A</span> — name → IPv4</li>
+          <li><span class="kbd">AAAA</span> — name → IPv6</li>
+          <li><span class="kbd">CNAME</span> — alias to another name</li>
+          <li><span class="kbd">MX</span> — mail server</li>
+          <li><span class="kbd">NS</span> — which DNS server is in charge</li>
+          <li><span class="kbd">TXT</span> — free text (used for SPF, verification)</li>
+        </ul>
+      </div>
+      <div class="card bg-rose-50 border border-rose-200 rounded-2xl p-4">
+        <p class="font-bold text-rose-900 text-sm">🛡️ DNS attacks</p>
+        <ul class="text-xs text-slate-700 mt-2 space-y-1">
+          <li>• <strong>DNS spoofing / cache poisoning</strong> — feed a fake answer so a name points to an attacker's server.</li>
+          <li>• <strong>DNS hijacking</strong> — change which resolver you use.</li>
+          <li>• <strong>DNS tunnelling</strong> — smuggle stolen data out inside DNS queries.</li>
+        </ul>
+      </div>
+      <div class="card bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+        <p class="font-bold text-emerald-900 text-sm">🛡️ Defences</p>
+        <ul class="text-xs text-slate-700 mt-2 space-y-1">
+          <li>• <strong>DNSSEC</strong> — signs answers so forgeries are detected.</li>
+          <li>• <strong>DoH / DoT</strong> — DNS over HTTPS/TLS, so lookups are encrypted and can't be read or altered in transit.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. LAYERS -->
+  <section id="layers" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-indigo-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">5</span>
+      <h2 class="text-2xl font-bold text-slate-800">The layers — how one message is built and unwrapped</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">The magic that makes independent networks cooperate is <strong>layering</strong>: each layer does one job and hands off to the next, wrapping the data in its own header like envelopes inside envelopes (<span class="term">encapsulation</span>). The <strong>OSI model</strong> (7 layers) is the teaching model; the <strong>TCP/IP model</strong> (4 layers) is what the real internet runs on.</p>
+
+    <div class="card bg-white border border-slate-200 rounded-2xl overflow-hidden mb-5">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-100 text-slate-600 text-xs uppercase">
+            <tr>
+              <th class="px-3 py-2 text-left">#</th>
+              <th class="px-3 py-2 text-left">OSI layer</th>
+              <th class="px-3 py-2 text-left">Job (plain words)</th>
+              <th class="px-3 py-2 text-left">Address / unit</th>
+              <th class="px-3 py-2 text-left">Real examples</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="bg-indigo-50/40"><td class="px-3 py-2 font-bold">7</td><td class="px-3 py-2 font-semibold text-indigo-800">Application</td><td class="px-3 py-2 text-slate-600">What the user actually uses</td><td class="px-3 py-2 text-slate-500">data</td><td class="px-3 py-2"><span class="kbd">HTTP</span> <span class="kbd">DNS</span> <span class="kbd">SMTP</span></td></tr>
+            <tr class="bg-indigo-50/40"><td class="px-3 py-2 font-bold">6</td><td class="px-3 py-2 font-semibold text-indigo-800">Presentation</td><td class="px-3 py-2 text-slate-600">Format, encrypt, compress</td><td class="px-3 py-2 text-slate-500">data</td><td class="px-3 py-2"><span class="kbd">TLS</span> <span class="kbd">JPEG</span> <span class="kbd">UTF-8</span></td></tr>
+            <tr class="bg-indigo-50/40"><td class="px-3 py-2 font-bold">5</td><td class="px-3 py-2 font-semibold text-indigo-800">Session</td><td class="px-3 py-2 text-slate-600">Open/keep/close conversations</td><td class="px-3 py-2 text-slate-500">data</td><td class="px-3 py-2 text-slate-500">sockets</td></tr>
+            <tr class="bg-blue-50/50"><td class="px-3 py-2 font-bold">4</td><td class="px-3 py-2 font-semibold text-blue-800">Transport</td><td class="px-3 py-2 text-slate-600">Reliability, ports, ordering</td><td class="px-3 py-2 text-slate-500">segment · <strong>port</strong></td><td class="px-3 py-2"><span class="kbd">TCP</span> <span class="kbd">UDP</span></td></tr>
+            <tr class="bg-teal-50/50"><td class="px-3 py-2 font-bold">3</td><td class="px-3 py-2 font-semibold text-teal-800">Network</td><td class="px-3 py-2 text-slate-600">Find the path across networks</td><td class="px-3 py-2 text-slate-500">packet · <strong>IP</strong></td><td class="px-3 py-2"><span class="kbd">IP</span> <span class="kbd">ICMP</span> routers</td></tr>
+            <tr class="bg-amber-50/50"><td class="px-3 py-2 font-bold">2</td><td class="px-3 py-2 font-semibold text-amber-800">Data Link</td><td class="px-3 py-2 text-slate-600">Move over one physical hop</td><td class="px-3 py-2 text-slate-500">frame · <strong>MAC</strong></td><td class="px-3 py-2"><span class="kbd">Ethernet</span> <span class="kbd">Wi-Fi</span> switches</td></tr>
+            <tr class="bg-rose-50/50"><td class="px-3 py-2 font-bold">1</td><td class="px-3 py-2 font-semibold text-rose-800">Physical</td><td class="px-3 py-2 text-slate-600">The actual signals</td><td class="px-3 py-2 text-slate-500">bits</td><td class="px-3 py-2 text-slate-500">fibre, radio, copper</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">Encapsulation — envelopes in envelopes</h3>
+        <p class="text-sm text-slate-600 mb-2">Going down the stack on send, each layer adds its header:</p>
+        <div class="text-xs font-mono bg-slate-50 rounded-lg p-3 text-slate-700 leading-relaxed">
+          [ Ethernet/Wi-Fi [ IP [ TCP [ HTTP&nbsp;data ] ] ] ]<br>
+          <span class="text-rose-500">L2</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-teal-600">L3</span>&nbsp;&nbsp;<span class="text-blue-600">L4</span>&nbsp;&nbsp;<span class="text-indigo-600">L7</span>
+        </div>
+        <p class="text-sm text-slate-600 mt-2">The receiver unwraps in reverse (<span class="term">de-encapsulation</span>). At every router hop, the L2 wrapper is stripped and rewritten (new MAC), but the L3 IP stays the same end-to-end. <strong>That single fact explains most of networking.</strong></p>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">TCP/IP model — the real one</h3>
+        <p class="text-sm text-slate-600 mb-3">The internet actually uses 4 layers. Map them onto OSI:</p>
+        <ul class="text-sm text-slate-600 space-y-1.5">
+          <li><span class="inline-block w-24 font-semibold text-indigo-700">Application</span> = OSI 5–7</li>
+          <li><span class="inline-block w-24 font-semibold text-blue-700">Transport</span> = OSI 4</li>
+          <li><span class="inline-block w-24 font-semibold text-teal-700">Internet</span> = OSI 3</li>
+          <li><span class="inline-block w-24 font-semibold text-amber-700">Link</span> = OSI 1–2</li>
+        </ul>
+        <p class="text-xs text-slate-400 mt-3">Mnemonic for OSI 1→7: <strong>“Please Do Not Throw Sausage Pizza Away.”</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. PACKETS & ROUTING -->
+  <section id="packets" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-indigo-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">6</span>
+      <h2 class="text-2xl font-bold text-slate-800">Packets, routing, ports &amp; the two transports</h2>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-5">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">Why packets, not one big stream?</h3>
+        <p class="text-sm text-slate-600">Your data is split into small <span class="term">packets</span>. Each carries source IP, destination IP, a sequence number, and a chunk of data. Benefits: they can take <strong>different routes</strong>, a lost one is re-sent alone, and many users share the same lines (<span class="term">packet switching</span>). Old phone systems used <em>circuit switching</em> — a dedicated line per call; the internet doesn't.</p>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">How routers choose the path</h3>
+        <p class="text-sm text-slate-600">Each router holds a <span class="term">routing table</span> and forwards each packet to the next hop that's closest to the destination network. Between big networks, <span class="kbd">BGP</span> (Border Gateway Protocol) advertises "you can reach these IP ranges through me." <span class="kbd">TTL</span> (time-to-live) counts down each hop so lost packets die instead of looping forever. <span class="kbd">traceroute</span> reveals these hops.</p>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-5">
+      <div class="card bg-blue-50 border border-blue-200 rounded-2xl p-5">
+        <h3 class="font-bold text-blue-800 mb-2">TCP — reliable</h3>
+        <ul class="text-sm text-slate-600 space-y-1">
+          <li>• <strong>Handshake first</strong> (SYN → SYN-ACK → ACK) before any data.</li>
+          <li>• Guarantees <strong>order</strong> and <strong>delivery</strong>; re-sends lost packets.</li>
+          <li>• Use when correctness matters: web pages, email, file downloads.</li>
+        </ul>
+      </div>
+      <div class="card bg-teal-50 border border-teal-200 rounded-2xl p-5">
+        <h3 class="font-bold text-teal-800 mb-2">UDP — fast</h3>
+        <ul class="text-sm text-slate-600 space-y-1">
+          <li>• <strong>No handshake</strong>, no re-sends — just fire packets.</li>
+          <li>• Lower latency, but some loss is possible.</li>
+          <li>• Use when speed &gt; perfection: video calls, live streaming, gaming, DNS.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+      <h3 class="font-bold text-slate-800 mb-2">Ports — many conversations on one IP</h3>
+      <p class="text-sm text-slate-600 mb-2">An IP gets your packet to the right <em>machine</em>; a <span class="term">port</span> gets it to the right <em>program</em> on that machine. Your browser, mail app, and game each use different ports so replies don't get mixed up.</p>
+      <div class="flex flex-wrap gap-2 text-xs mt-3">
+        <span class="kbd">20/21 FTP</span><span class="kbd">22 SSH</span><span class="kbd">25 SMTP</span><span class="kbd">53 DNS</span><span class="kbd">80 HTTP</span><span class="kbd">143 IMAP</span><span class="kbd">443 HTTPS</span><span class="kbd">3389 RDP</span>
+      </div>
+      <p class="text-xs text-slate-400 mt-3">🛡️ Port scanning (e.g. <span class="kbd">nmap</span>) is step one of most pentests — you map which ports are open to see what services a target is running.</p>
+    </div>
+  </section>
+
+  <!-- 7. PHYSICAL -->
+  <section id="physical" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-indigo-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">7</span>
+      <h2 class="text-2xl font-bold text-slate-800">The physical internet — who owns the wires</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">"The cloud" is other people's computers connected by very real cables. Here's the physical hierarchy your Airtel packet climbs.</p>
+
+    <div class="space-y-3 mb-5">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-4 flex gap-4 items-start">
+        <span class="text-2xl">🏠</span>
+        <div><p class="font-bold text-slate-800 text-sm">Access network</p><p class="text-sm text-slate-600">How you reach your ISP: mobile radio (your case), fibre-to-the-home, cable, DSL. The "last mile."</p></div>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-4 flex gap-4 items-start">
+        <span class="text-2xl">🏢</span>
+        <div><p class="font-bold text-slate-800 text-sm">Tier 3 / Tier 2 ISPs</p><p class="text-sm text-slate-600">Retail and regional providers (Airtel's retail side, JioFiber, ACT). They <strong>buy transit</strong> from bigger networks to reach the whole internet.</p></div>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-4 flex gap-4 items-start">
+        <span class="text-2xl">🔀</span>
+        <div><p class="font-bold text-slate-800 text-sm">IXP — Internet Exchange Point</p><p class="text-sm text-slate-600">A shared building where many networks <strong>peer</strong> (swap traffic directly, often free) instead of paying to route the long way. Keeps local traffic local and fast.</p></div>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-4 flex gap-4 items-start">
+        <span class="text-2xl">🌍</span>
+        <div><p class="font-bold text-slate-800 text-sm">Tier 1 networks</p><p class="text-sm text-slate-600">The backbone giants that can reach the <em>entire</em> internet without paying anyone — they only peer with each other. They own the intercontinental links.</p></div>
+      </div>
+      <div class="card bg-teal-50 border border-teal-200 rounded-2xl p-4 flex gap-4 items-start">
+        <span class="text-2xl">🌊</span>
+        <div><p class="font-bold text-teal-800 text-sm">Submarine cables</p><p class="text-sm text-slate-600">~99% of intercontinental traffic runs through fibre-optic cables on the seabed — <em>not</em> satellites (too slow/limited for bulk traffic). India connects via landing stations at Mumbai, Chennai and others. This is the literal "international connection."</p></div>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-4 flex gap-4 items-start">
+        <span class="text-2xl">📦</span>
+        <div><p class="font-bold text-slate-800 text-sm">CDNs &amp; data centres</p><p class="text-sm text-slate-600">Big sites cache copies close to you (Cloudflare, Akamai, Google edge). Often your "US server" request is quietly served from a box <em>inside India</em> — faster, and it never crosses the ocean at all.</p></div>
+      </div>
+    </div>
+    <p class="text-xs text-slate-400">🛡️ Why this matters for security &amp; resilience: cutting a few submarine cables can slow a whole region; BGP mistakes/attacks can reroute a country's traffic through the wrong network. The physical + routing layer is real-world national infrastructure.</p>
+  </section>
+
+  <!-- 8. WEB -->
+  <section id="web" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-indigo-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">8</span>
+      <h2 class="text-2xl font-bold text-slate-800">HTTP, HTTPS &amp; TLS — the web on top</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">Everything above delivers bytes anywhere. <strong>The web</strong> is just one application riding on top, spoken in HTTP.</p>
+
+    <div class="grid md:grid-cols-2 gap-4 mb-5">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">HTTP — request &amp; response</h3>
+        <p class="text-sm text-slate-600">Your browser sends a request (<span class="kbd">GET /page</span>) and the server sends a response (status + content). Common methods: <span class="kbd">GET</span> (read), <span class="kbd">POST</span> (send data), <span class="kbd">PUT</span>, <span class="kbd">DELETE</span>. Status codes: <span class="kbd">200</span> OK, <span class="kbd">301</span> moved, <span class="kbd">404</span> not found, <span class="kbd">403</span> forbidden, <span class="kbd">500</span> server error.</p>
+      </div>
+      <div class="card bg-emerald-50 border border-emerald-200 rounded-2xl p-5">
+        <h3 class="font-bold text-emerald-900 mb-2">HTTPS = HTTP + TLS 🔒</h3>
+        <p class="text-sm text-slate-700">Plain HTTP is readable by every hop in between. <span class="term">TLS</span> wraps it so those hops carry data they <strong>can't read or alter</strong>. The padlock means the traffic is encrypted <em>and</em> the server proved its identity with a certificate.</p>
+      </div>
+    </div>
+
+    <div class="card bg-white border border-slate-200 rounded-2xl p-6">
+      <h3 class="font-bold text-slate-800 mb-3">What the TLS handshake gives you (3 guarantees)</h3>
+      <div class="grid md:grid-cols-3 gap-4 text-sm">
+        <div class="bg-slate-50 rounded-xl p-4"><p class="font-bold text-slate-700">🔐 Confidentiality</p><p class="text-slate-600 mt-1">Encrypted, so eavesdroppers on any hop see only scrambled bytes.</p></div>
+        <div class="bg-slate-50 rounded-xl p-4"><p class="font-bold text-slate-700">✅ Integrity</p><p class="text-slate-600 mt-1">Tampering is detected — data can't be silently changed in transit.</p></div>
+        <div class="bg-slate-50 rounded-xl p-4"><p class="font-bold text-slate-700">🆔 Authentication</p><p class="text-slate-600 mt-1">A certificate (signed by a trusted CA) proves you're talking to the real server, not an impostor.</p></div>
+      </div>
+      <p class="text-sm text-slate-600 mt-4">Under the hood it uses <strong>asymmetric crypto</strong> (public/private keys) to agree on a shared secret, then switches to fast <strong>symmetric</strong> encryption for the actual data. This is exactly the applied-crypto core of your security syllabus.</p>
+    </div>
+  </section>
+
+  <!-- 9. SECURITY -->
+  <section id="security" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-rose-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">9</span>
+      <h2 class="text-2xl font-bold text-slate-800">🛡️ Attacks &amp; defences, layer by layer</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">Your red-team lens: every layer you just learned is an attack surface. This table is the one to internalise — it maps the whole page onto offensive/defensive security.</p>
+
+    <div class="card bg-white border border-slate-200 rounded-2xl overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-800 text-white text-xs uppercase">
+            <tr><th class="px-3 py-2 text-left">Layer</th><th class="px-3 py-2 text-left">Example attacks</th><th class="px-3 py-2 text-left">Defences</th></tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-3 py-2 font-semibold text-indigo-800">Application (7)</td><td class="px-3 py-2 text-slate-600">SQL injection, XSS, phishing, malware</td><td class="px-3 py-2 text-slate-600">Input validation, WAF, patching, user training</td></tr>
+            <tr class="bg-slate-50/60"><td class="px-3 py-2 font-semibold text-emerald-800">Presentation (6)</td><td class="px-3 py-2 text-slate-600">SSL stripping, weak/old ciphers</td><td class="px-3 py-2 text-slate-600">Strong TLS config, HSTS, cert pinning</td></tr>
+            <tr><td class="px-3 py-2 font-semibold text-blue-800">Transport (4)</td><td class="px-3 py-2 text-slate-600">SYN flood (DoS), port scanning, session hijack</td><td class="px-3 py-2 text-slate-600">Firewalls, rate limits, SYN cookies</td></tr>
+            <tr class="bg-slate-50/60"><td class="px-3 py-2 font-semibold text-teal-800">Network (3)</td><td class="px-3 py-2 text-slate-600">IP spoofing, MITM, BGP hijack, DDoS</td><td class="px-3 py-2 text-slate-600">IPsec, ingress filtering, RPKI, anti-DDoS</td></tr>
+            <tr><td class="px-3 py-2 font-semibold text-amber-800">Data Link (2)</td><td class="px-3 py-2 text-slate-600">ARP spoofing, MAC flooding, rogue AP, evil twin</td><td class="px-3 py-2 text-slate-600">Port security, dynamic ARP inspection, 802.1X</td></tr>
+            <tr class="bg-slate-50/60"><td class="px-3 py-2 font-semibold text-rose-800">Physical (1)</td><td class="px-3 py-2 text-slate-600">Cable tapping, cut cables, hardware implants</td><td class="px-3 py-2 text-slate-600">Physical access control, shielding, redundancy</td></tr>
+            <tr><td class="px-3 py-2 font-semibold text-slate-700">DNS / infra</td><td class="px-3 py-2 text-slate-600">Cache poisoning, hijacking, tunnelling</td><td class="px-3 py-2 text-slate-600">DNSSEC, DoH/DoT, monitoring</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card bg-slate-900 text-slate-100 rounded-2xl p-5 mt-4">
+      <p class="text-sm"><strong class="text-emerald-400">The CIA triad</strong> ties it together — every defence protects one of: <strong>C</strong>onfidentiality (keep secret), <strong>I</strong>ntegrity (keep unaltered), <strong>A</strong>vailability (keep reachable). When you analyse any attack, ask which of the three it breaks. That single habit is the backbone of security thinking.</p>
+    </div>
+  </section>
+
+  <!-- 10. CHEAT SHEETS -->
+  <section id="cheat" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-indigo-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">10</span>
+      <h2 class="text-2xl font-bold text-slate-800">Quick cheat sheets</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-4">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2 text-sm">Acronyms in one place</h3>
+        <ul class="text-xs text-slate-600 space-y-1">
+          <li><strong>LAN/WAN/MAN/PAN</strong> — network by scope</li>
+          <li><strong>IP</strong> — Internet Protocol address</li>
+          <li><strong>NAT/CGNAT</strong> — address translation</li>
+          <li><strong>DNS</strong> — name → IP</li>
+          <li><strong>DHCP</strong> — auto-assigns IPs on a LAN</li>
+          <li><strong>TCP/UDP</strong> — reliable / fast transport</li>
+          <li><strong>ISP</strong> — Internet Service Provider</li>
+          <li><strong>IXP</strong> — Internet Exchange Point</li>
+          <li><strong>BGP</strong> — routing between networks</li>
+          <li><strong>TLS/SSL</strong> — encryption for HTTPS</li>
+          <li><strong>CDN</strong> — cached copies near you</li>
+        </ul>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2 text-sm">The full round trip (recite this)</h3>
+        <ol class="text-xs text-slate-600 space-y-1 list-decimal list-inside">
+          <li>Type name → <strong>DNS</strong> resolves to IP</li>
+          <li>Data split into <strong>packets</strong></li>
+          <li><strong>TCP</strong> handshake + <strong>TLS</strong> handshake</li>
+          <li>Laptop → phone (<strong>LAN</strong>, private IP)</li>
+          <li><strong>NAT</strong> → tower → <strong>CGNAT</strong> (WAN)</li>
+          <li>Backbone → <strong>IXP</strong> → submarine cable</li>
+          <li>Foreign ISP → <strong>server</strong></li>
+          <li>Reply retraces path; NAT reverses; browser renders</li>
+        </ol>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2 text-sm">Handy commands to explore</h3>
+        <ul class="text-xs text-slate-600 space-y-1 font-mono">
+          <li><span class="kbd">ipconfig</span> — see your IP (Win)</li>
+          <li><span class="kbd">ping</span> — is a host reachable?</li>
+          <li><span class="kbd">tracert</span> — show every hop</li>
+          <li><span class="kbd">nslookup</span> — do a DNS query</li>
+          <li><span class="kbd">netstat</span> — open connections/ports</li>
+        </ul>
+        <p class="text-xs text-slate-400 mt-2">Try <span class="kbd">tracert google.com</span> on your laptop — you'll literally see the hops from this page.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY THIS EXISTS -->
+  <section class="card bg-slate-100 border border-slate-200 rounded-2xl p-6">
+    <h2 class="font-bold text-slate-700 mb-2">Why this page exists</h2>
+    <p class="text-sm text-slate-600">Built from your Airtel-SIM question so one concrete example carries every core internet concept end-to-end — the foundation for Network+ / Security+ and the routing/DNS/TLS topics your red-team path builds on. It pairs with your <a href="netplus_concept_decoder.html" class="text-indigo-600 underline">Network+ Concept Decoder</a> and <a href="comptia_networkplus_tracker.html" class="text-indigo-600 underline">Network+ tracker</a>. Everything here is standard, widely-documented networking; nothing is overstated.</p>
+  </section>
+
+</main>
+
+<footer class="border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+  How the internet works · from-zero study page · tick concepts as you teach them back
+</footer>
+
+<script>
+(function(){
+  const KEY = "how-internet-works-progress";
+  // Wrap each teach-back item: turn key concept cards into checkable rows by injecting checkboxes
+  // We attach checkboxes to every section's <h2> to track "can I teach this section".
+  const sections = document.querySelectorAll("main section[id]");
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e){ saved = {}; }
+
+  const items = [];
+  sections.forEach(sec => {
+    const h = sec.querySelector("h2");
+    if(!h) return;
+    const id = sec.id;
+    const wrap = document.createElement("label");
+    wrap.className = "flex items-center gap-2 ml-auto text-xs font-normal text-slate-400 cursor-pointer select-none";
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.className = "chk"; cb.dataset.id = id;
+    cb.checked = !!saved[id];
+    const span = document.createElement("span");
+    span.textContent = "I can teach this";
+    wrap.appendChild(cb); wrap.appendChild(span);
+    // place the label into the h2's parent flex row
+    h.parentElement.classList.add("flex-wrap");
+    h.parentElement.appendChild(wrap);
+    items.push(cb);
+    cb.addEventListener("change", () => { saved[id] = cb.checked; localStorage.setItem(KEY, JSON.stringify(saved)); render(); });
+  });
+
+  const bar = document.getElementById("bar");
+  const prog = document.getElementById("prog");
+  function render(){
+    const done = items.filter(c => c.checked).length;
+    const total = items.length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    bar.style.width = pct + "%";
+    prog.textContent = done + " / " + total;
+  }
+  document.getElementById("reset").addEventListener("click", () => {
+    saved = {}; localStorage.removeItem(KEY);
+    items.forEach(c => c.checked = false); render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>

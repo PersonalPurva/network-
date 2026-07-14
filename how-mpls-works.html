@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How MPLS works — from zero to the air-gapped NOC</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#f8fafc; color:#0f172a; scroll-behavior:smooth; }
+  .card { transition: box-shadow .15s, transform .15s; }
+  .card:hover { box-shadow:0 8px 24px -8px rgb(0 0 0 / .18); transform:translateY(-1px); }
+  .chk { accent-color:#10b981; width:1.15rem; height:1.15rem; cursor:pointer; flex-shrink:0; margin-top:2px; }
+  mark { background:#fde68a; padding:0 2px; border-radius:2px; }
+  .term { border-bottom:1.5px dotted #0d9488; font-weight:600; color:#0f766e; }
+  .kbd { font-family:ui-monospace,Menlo,Consolas,monospace; background:#ccfbf1; color:#0f766e; padding:1px 6px; border-radius:5px; font-size:.85em; }
+  .sec-anchor { scroll-margin-top:5.5rem; }
+  .lbl { font-family:ui-monospace,Menlo,Consolas,monospace; font-weight:700; }
+  ::-webkit-scrollbar { width:9px; height:9px; }
+  ::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:6px; }
+</style>
+</head>
+<body class="antialiased">
+
+<!-- HERO -->
+<header class="bg-gradient-to-r from-teal-700 via-cyan-700 to-sky-700 text-white">
+  <div class="max-w-6xl mx-auto px-6 py-9">
+    <div class="flex flex-wrap items-center gap-3 mb-3">
+      <span class="bg-white/20 text-xs font-bold px-3 py-1 rounded-full backdrop-blur">MPLS · from zero</span>
+      <span class="bg-rose-500/30 text-xs font-bold px-3 py-1 rounded-full backdrop-blur">🛰️ built for BAH PS#13</span>
+      <span class="text-cyan-100 text-sm">the fundamentals your NOC decoder assumes</span>
+    </div>
+    <h1 class="text-4xl font-extrabold tracking-tight">How MPLS actually works</h1>
+    <p class="text-cyan-100 mt-2 max-w-3xl leading-relaxed">The normal-internet page showed packets getting an IP lookup at <em>every</em> hop. <strong>MPLS</strong> is what big telecom backbones use instead: decide the path once at the edge, then <em>switch on a short label</em> through the core. This page teaches MPLS from scratch — <strong>labels, LERs &amp; LSRs, FEC, LDP, LSPs, and MPLS VPNs</strong> — then connects straight into the three-plane telemetry and six threats of your air-gapped NOC model. Tick each idea once you can defend it out loud.</p>
+    <div class="flex flex-wrap gap-2 mt-5 text-xs">
+      <a href="#why" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">1 · Why MPLS</a>
+      <a href="#label" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">2 · The label</a>
+      <a href="#devices" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">3 · LER &amp; LSR</a>
+      <a href="#flow" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">4 · Push/swap/pop</a>
+      <a href="#distribution" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">5 · LDP &amp; tables</a>
+      <a href="#lsp" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">6 · LSPs</a>
+      <a href="#vpn" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">7 · MPLS VPNs</a>
+      <a href="#te" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">8 · TE &amp; QoS</a>
+      <a href="#noc" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">9 · The NOC (BAH)</a>
+      <a href="#threats" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">10 · 6 threats</a>
+      <a href="#cheat" class="bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-lg">11 · Cheat sheets</a>
+    </div>
+  </div>
+</header>
+
+<!-- PROGRESS -->
+<div class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200">
+  <div class="max-w-6xl mx-auto px-6 py-2.5 flex items-center gap-4">
+    <span class="text-xs font-semibold text-slate-600 whitespace-nowrap">🧠 Teach-back progress</span>
+    <div class="flex-1 h-2.5 bg-slate-200 rounded-full overflow-hidden"><div id="bar" class="h-full bg-emerald-500 rounded-full transition-all" style="width:0%"></div></div>
+    <span id="prog" class="text-xs font-bold text-emerald-700 whitespace-nowrap">0 / 0</span>
+    <button id="reset" class="text-xs text-slate-400 hover:text-rose-500">reset</button>
+  </div>
+</div>
+
+<main class="max-w-6xl mx-auto px-6 py-8 space-y-10">
+
+  <!-- MENTAL MODEL -->
+  <section class="card bg-teal-50 border border-teal-200 rounded-2xl p-6">
+    <h2 class="font-bold text-teal-900 text-lg mb-2">🧭 The one-sentence mental model</h2>
+    <p class="text-slate-700 leading-relaxed"><strong>MPLS = "route once at the edge, switch on a label through the core."</strong> Instead of every router re-reading the IP header and doing a slow, longest-prefix routing lookup, the first router picks the whole path and slaps a short <span class="term">label</span> on the packet. Every core router then just reads that label, swaps it, and forwards — a fast, exact-match table lookup. The label is a pre-paid ticket that says "put me on train 17"; the core never re-checks your final address.</p>
+  </section>
+
+  <!-- 1. WHY -->
+  <section id="why" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-teal-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">1</span>
+      <h2 class="text-2xl font-bold text-slate-800">Why MPLS exists — the problem with plain IP</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">On the normal internet, every router independently reads the destination IP and does a <span class="term">longest-prefix match</span> against a huge routing table to decide the next hop. That has three pain points on a carrier backbone:</p>
+    <div class="grid md:grid-cols-3 gap-4 mb-5">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5"><p class="font-bold text-slate-800 text-sm">Repeated lookups</p><p class="text-sm text-slate-600 mt-1">Every hop re-parses the IP header and searches the full table. Wasteful when the path is already known.</p></div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5"><p class="font-bold text-slate-800 text-sm">No path control</p><p class="text-sm text-slate-600 mt-1">Plain IP always takes the "shortest" route. You can't say "send this traffic the long way to balance load" — no traffic engineering.</p></div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5"><p class="font-bold text-slate-800 text-sm">No clean VPNs</p><p class="text-sm text-slate-600 mt-1">Keeping hundreds of customers' overlapping private IPs separate over one shared backbone is hard with IP alone.</p></div>
+    </div>
+    <div class="card bg-white border border-slate-200 rounded-2xl p-6">
+      <h3 class="font-bold text-slate-800 mb-2">MPLS's answer</h3>
+      <p class="text-sm text-slate-600 mb-2">Do the expensive IP decision <strong>once</strong>, at the edge, and encode the result as a label. The core switches on labels (simple exact match), can be steered onto <em>any</em> path the operator chooses, and can stack a second label to keep each customer's traffic in its own private tunnel. That's the whole value proposition: <strong>speed, control, and isolation</strong>.</p>
+      <p class="text-xs text-slate-400">Note: modern core silicon does IP lookups fast too, so raw speed is less of an argument today — <strong>traffic engineering and VPNs are why MPLS still dominates telecom/ISP backbones</strong>, and why ISRO's backbone in PS#13 is modelled as MPLS.</p>
+    </div>
+  </section>
+
+  <!-- 2. LABEL -->
+  <section id="label" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-teal-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">2</span>
+      <h2 class="text-2xl font-bold text-slate-800">The label &amp; the "layer 2.5" shim</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">MPLS inserts a 32-bit <span class="term">shim header</span> between the layer-2 frame header (Ethernet) and the layer-3 packet (IP) — which is why MPLS is nicknamed <strong>"layer 2.5."</strong></p>
+    <div class="card bg-white border border-slate-200 rounded-2xl p-6 mb-4">
+      <h3 class="font-bold text-slate-800 mb-3">The 32-bit MPLS header, field by field</h3>
+      <div class="flex rounded-lg overflow-hidden text-center text-xs font-semibold border border-slate-300 mb-3">
+        <div class="bg-teal-100 text-teal-800 py-3" style="flex:20"><p class="lbl">Label</p><p class="font-normal text-slate-500">20 bits</p></div>
+        <div class="bg-cyan-100 text-cyan-800 py-3 border-l border-slate-300" style="flex:3"><p class="lbl">TC</p><p class="font-normal text-slate-500">3</p></div>
+        <div class="bg-amber-100 text-amber-800 py-3 border-l border-slate-300" style="flex:1"><p class="lbl">S</p><p class="font-normal text-slate-500">1</p></div>
+        <div class="bg-rose-100 text-rose-800 py-3 border-l border-slate-300" style="flex:8"><p class="lbl">TTL</p><p class="font-normal text-slate-500">8</p></div>
+      </div>
+      <ul class="text-sm text-slate-600 space-y-1.5">
+        <li>• <strong class="text-teal-700">Label (20 bits)</strong> — the value core routers match on. ~1 million possible; values 0–15 reserved.</li>
+        <li>• <strong class="text-cyan-700">TC / EXP (3 bits)</strong> — Traffic Class (old name "EXP"). Carries QoS priority — voice vs bulk.</li>
+        <li>• <strong class="text-amber-700">S — Bottom of Stack (1 bit)</strong> — <span class="kbd">1</span> means "this is the last/innermost label." Lets routers stack multiple labels (VPNs need two).</li>
+        <li>• <strong class="text-rose-700">TTL (8 bits)</strong> — same idea as IP TTL: decremented each hop, kills looping packets.</li>
+      </ul>
+    </div>
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-4"><p class="font-bold text-slate-800 text-sm">Reserved labels to know</p><p class="text-xs text-slate-600 mt-1"><span class="kbd">0</span> = explicit null (IPv4), <span class="kbd">2</span> = explicit null (IPv6), <span class="kbd">3</span> = implicit null (triggers PHP — section 4).</p></div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-4"><p class="font-bold text-slate-800 text-sm">Label stack</p><p class="text-xs text-slate-600 mt-1">Labels can be pushed on top of each other. The <strong>S bit</strong> marks the bottom. Outer label = transport across the core; inner label = which VPN/service. This two-label stack is the heart of MPLS VPNs.</p></div>
+    </div>
+  </section>
+
+  <!-- 3. DEVICES -->
+  <section id="devices" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-teal-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">3</span>
+      <h2 class="text-2xl font-bold text-slate-800">The devices — edge vs core</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">An MPLS network has two router roles. Getting these names straight makes everything else click.</p>
+    <div class="grid md:grid-cols-3 gap-4 mb-5">
+      <div class="card bg-blue-50 border border-blue-300 rounded-2xl p-5">
+        <p class="text-xs font-bold text-blue-400">EDGE</p>
+        <p class="font-bold text-blue-800">LER / PE router</p>
+        <p class="text-xs text-slate-500 mb-2">Label Edge Router · Provider Edge</p>
+        <p class="text-sm text-slate-600">Sits at the border of the MPLS cloud. Does the heavy IP work: classifies the packet, <strong>pushes</strong> the first label (ingress) or <strong>pops</strong> it and returns to plain IP (egress). The smart router.</p>
+      </div>
+      <div class="card bg-teal-50 border border-teal-300 rounded-2xl p-5">
+        <p class="text-xs font-bold text-teal-400">CORE</p>
+        <p class="font-bold text-teal-800">LSR / P router</p>
+        <p class="text-xs text-slate-500 mb-2">Label Switching Router · Provider</p>
+        <p class="text-sm text-slate-600">Lives inside the cloud. Only ever <strong>swaps</strong> labels using a fast table — never looks at the customer IP at all. The dumb-but-fast router.</p>
+      </div>
+      <div class="card bg-slate-50 border border-slate-300 rounded-2xl p-5">
+        <p class="text-xs font-bold text-slate-400">CUSTOMER</p>
+        <p class="font-bold text-slate-700">CE router</p>
+        <p class="text-xs text-slate-500 mb-2">Customer Edge</p>
+        <p class="text-sm text-slate-600">The customer's own router that hands plain IP to the PE. It has <em>no idea</em> MPLS exists — that's the point of a provider VPN.</p>
+      </div>
+    </div>
+    <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+      <p class="text-sm text-slate-600"><strong>Mnemonic:</strong> <span class="text-slate-800 font-semibold">P</span>rovider = <span class="text-slate-800 font-semibold">P</span>ure core (only labels). <span class="text-slate-800 font-semibold">PE</span> = <span class="text-slate-800 font-semibold">P</span>rovider <span class="text-slate-800 font-semibold">E</span>dge (the translator). <span class="text-slate-800 font-semibold">CE</span> = <span class="text-slate-800 font-semibold">C</span>ustomer's box. Traffic path is always <span class="kbd">CE → PE → P → P → PE → CE</span>.</p>
+    </div>
+  </section>
+
+  <!-- 4. FLOW -->
+  <section id="flow" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-teal-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">4</span>
+      <h2 class="text-2xl font-bold text-slate-800">The three operations: push, swap, pop</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">Everything MPLS does to a packet is one of three label operations. First, one key idea:</p>
+    <div class="card bg-white border border-slate-200 rounded-2xl p-5 mb-5">
+      <h3 class="font-bold text-slate-800 mb-1">FEC — Forwarding Equivalence Class</h3>
+      <p class="text-sm text-slate-600">A <span class="term">FEC</span> is a group of packets that should all be treated the same way and take the same path (e.g. "everything going to network 10.0.5.0/24"). At the ingress, the PE decides which FEC a packet belongs to <em>once</em>, and maps that FEC to a label. All packets in a FEC ride the same <span class="term">LSP</span> (label-switched path).</p>
+    </div>
+
+    <div class="card bg-white border border-slate-200 rounded-2xl p-6 mb-4">
+      <h3 class="font-bold text-slate-800 mb-4">A packet crossing the backbone</h3>
+      <div class="space-y-3">
+        <div class="flex items-start gap-3"><span class="bg-blue-100 text-blue-800 font-bold rounded-lg w-24 text-center py-1.5 text-xs shrink-0">Ingress PE</span><p class="text-sm text-slate-600"><strong>PUSH.</strong> Reads the IP, picks the FEC, pushes label <span class="kbd">17</span>. Plain IP packet → labelled packet.</p></div>
+        <div class="flex items-start gap-3"><span class="bg-teal-100 text-teal-800 font-bold rounded-lg w-24 text-center py-1.5 text-xs shrink-0">Core P #1</span><p class="text-sm text-slate-600"><strong>SWAP.</strong> Sees label <span class="kbd">17</span> in its table → "swap to <span class="kbd">42</span>, send out port 3." Never reads the IP.</p></div>
+        <div class="flex items-start gap-3"><span class="bg-teal-100 text-teal-800 font-bold rounded-lg w-24 text-center py-1.5 text-xs shrink-0">Core P #2</span><p class="text-sm text-slate-600"><strong>SWAP.</strong> Label <span class="kbd">42</span> → <span class="kbd">88</span>, out port 1.</p></div>
+        <div class="flex items-start gap-3"><span class="bg-amber-100 text-amber-800 font-bold rounded-lg w-24 text-center py-1.5 text-xs shrink-0">Penult. P</span><p class="text-sm text-slate-600"><strong>POP (PHP).</strong> With <em>penultimate hop popping</em>, the second-to-last router removes the label so the egress PE gets a clean packet and doesn't do a double lookup. Signalled by reserved label <span class="kbd">3</span>.</p></div>
+        <div class="flex items-start gap-3"><span class="bg-blue-100 text-blue-800 font-bold rounded-lg w-24 text-center py-1.5 text-xs shrink-0">Egress PE</span><p class="text-sm text-slate-600"><strong>Forward as IP.</strong> Sends the original packet to the customer (CE). Back to normal routing.</p></div>
+      </div>
+    </div>
+    <div class="grid md:grid-cols-3 gap-4">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-4"><p class="font-bold text-teal-700 text-sm">PUSH</p><p class="text-xs text-slate-600 mt-1">Add a label (ingress, or entering a VPN tunnel).</p></div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-4"><p class="font-bold text-teal-700 text-sm">SWAP</p><p class="text-xs text-slate-600 mt-1">Replace the top label with a new one (every core hop).</p></div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-4"><p class="font-bold text-teal-700 text-sm">POP</p><p class="text-xs text-slate-600 mt-1">Remove the top label (egress / penultimate hop).</p></div>
+    </div>
+  </section>
+
+  <!-- 5. DISTRIBUTION -->
+  <section id="distribution" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-teal-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">5</span>
+      <h2 class="text-2xl font-bold text-slate-800">How labels get agreed — LDP &amp; the tables</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">Labels are only locally meaningful, so neighbours must agree "when I say label 17, I mean this FEC." A <span class="term">label distribution protocol</span> spreads that agreement across the network.</p>
+    <div class="grid md:grid-cols-2 gap-4 mb-5">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">LDP — Label Distribution Protocol</h3>
+        <p class="text-sm text-slate-600">The common one. Each router advertises its label-to-FEC bindings to neighbours, so a full path of labels forms automatically, following the normal IP routing (it just labels the existing shortest path). Simple, no path control.</p>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">RSVP-TE — for traffic engineering</h3>
+        <p class="text-sm text-slate-600">Used when you want a <em>specific</em> path with reserved bandwidth (not just shortest). It signals an explicit route hop by hop and reserves resources. This is what enables MPLS-TE and Fast ReRoute (section 8). Modern networks increasingly use <strong>Segment Routing</strong> instead (below).</p>
+      </div>
+    </div>
+    <div class="card bg-white border border-slate-200 rounded-2xl p-6 mb-4">
+      <h3 class="font-bold text-slate-800 mb-3">The three tables inside a router</h3>
+      <div class="grid md:grid-cols-3 gap-3 text-sm">
+        <div class="bg-slate-50 rounded-xl p-4"><p class="font-bold text-slate-700"><span class="kbd">RIB / FIB</span></p><p class="text-xs text-slate-600 mt-1">The normal IP routing / forwarding table — where IP destinations go.</p></div>
+        <div class="bg-slate-50 rounded-xl p-4"><p class="font-bold text-slate-700"><span class="kbd">LIB</span></p><p class="text-xs text-slate-600 mt-1">Label Information Base — <em>all</em> label bindings learned from all neighbours (the full catalogue).</p></div>
+        <div class="bg-slate-50 rounded-xl p-4"><p class="font-bold text-slate-700"><span class="kbd">LFIB</span></p><p class="text-xs text-slate-600 mt-1">Label Forwarding Information Base — the <em>chosen</em> in-label → out-label + port entries actually used to switch packets. The hot path.</p></div>
+      </div>
+      <p class="text-sm text-slate-600 mt-3">Flow: LDP fills the <span class="kbd">LIB</span> → the best bindings are installed into the <span class="kbd">LFIB</span> → packets are switched by LFIB lookups. In your NOC, watching these tables change is a security signal — a label binding that shouldn't exist is an attack.</p>
+    </div>
+  </section>
+
+  <!-- 6. LSP -->
+  <section id="lsp" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-teal-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">6</span>
+      <h2 class="text-2xl font-bold text-slate-800">LSP — the label-switched path</h2>
+    </div>
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">What an LSP is</h3>
+        <p class="text-sm text-slate-600 mb-2">An <span class="term">LSP</span> is the end-to-end tunnel a labelled packet follows from ingress PE to egress PE — the chain of swap operations. It is <strong>unidirectional</strong>: traffic the other way uses a separate LSP.</p>
+        <p class="text-sm text-slate-600">Think of it as a one-way virtual circuit built out of labels, laid over the shared physical network.</p>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">Signalled vs static</h3>
+        <p class="text-sm text-slate-600"><strong>Signalled</strong> LSPs are built automatically by LDP/RSVP-TE (normal). <strong>Static</strong> LSPs are hand-configured (rare, for special control). An LSP that appears without a legitimate signalling trigger is exactly the kind of anomaly a NOC should flag — see the honey-LSP threat.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. VPN -->
+  <section id="vpn" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-teal-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">7</span>
+      <h2 class="text-2xl font-bold text-slate-800">MPLS VPNs — the killer feature</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">The reason carriers love MPLS: one physical backbone can carry hundreds of customers, each feeling like they have a private network — <strong>even if two customers use the exact same private IP range</strong> (<span class="kbd">10.0.0.0/8</span>). Here's the machinery.</p>
+    <div class="grid md:grid-cols-2 gap-4 mb-5">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">L3VPN — the common one</h3>
+        <p class="text-sm text-slate-600 mb-2">The provider routes IP for the customer. Built from four pieces:</p>
+        <ul class="text-sm text-slate-600 space-y-1.5">
+          <li>• <span class="term">VRF</span> (Virtual Routing &amp; Forwarding) — each customer gets its own private routing table on the PE, so their routes never mix.</li>
+          <li>• <span class="term">RD</span> (Route Distinguisher) — an 8-byte value prepended to each route to make overlapping IPs globally unique (customer-A's 10.1.1.0 ≠ customer-B's).</li>
+          <li>• <span class="term">RT</span> (Route Target) — a BGP tag controlling which VRFs <em>import/export</em> which routes — this is what defines VPN membership (and, if misconfigured, leaks between customers).</li>
+          <li>• <span class="term">MP-BGP</span> — carries these VPN routes (VPNv4) between PEs across the core.</li>
+        </ul>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">The two-label stack in action</h3>
+        <p class="text-sm text-slate-600 mb-2">VPN traffic carries <strong>two</strong> labels:</p>
+        <div class="space-y-1.5 text-sm">
+          <div class="bg-teal-100 border border-teal-300 rounded-lg p-2"><span class="font-semibold text-teal-800">Outer label</span> <span class="text-xs text-slate-500">— transport: gets the packet PE→PE across the core (LDP)</span></div>
+          <div class="bg-cyan-100 border border-cyan-300 rounded-lg p-2"><span class="font-semibold text-cyan-800">Inner label</span> <span class="text-xs text-slate-500">— VPN: tells the egress PE which customer VRF to deliver to (MP-BGP)</span></div>
+        </div>
+        <p class="text-sm text-slate-600 mt-2">Core P routers only read the outer label — they have no clue which customer it is. The egress PE pops the outer, reads the inner, and drops the packet into the right VRF. Isolation achieved.</p>
+      </div>
+    </div>
+    <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+      <h3 class="font-bold text-slate-800 mb-2">L2VPN — extending a LAN</h3>
+      <p class="text-sm text-slate-600">Instead of routing, the provider carries the customer's raw layer-2 frames across the MPLS core, so two distant sites feel like one LAN. Point-to-point is a <span class="term">pseudowire</span>; multipoint is <span class="term">VPLS</span>. Handy context, but L3VPN is the one your PS#13 model centres on (route leakage threat).</p>
+    </div>
+  </section>
+
+  <!-- 8. TE -->
+  <section id="te" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-teal-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">8</span>
+      <h2 class="text-2xl font-bold text-slate-800">Traffic engineering, QoS &amp; fast reroute</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-4 mb-4">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-1">MPLS-TE</h3>
+        <p class="text-sm text-slate-600">Steer traffic onto specific paths (not just shortest) to balance load and honour bandwidth guarantees. Built with RSVP-TE, using link-state info (OSPF/IS-IS with TE extensions) to compute a path that <em>fits</em>.</p>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-1">QoS via the TC bits</h3>
+        <p class="text-sm text-slate-600">The 3 TC/EXP bits mark priority so voice/critical traffic gets low latency while bulk data waits. Carriers sell SLAs on this. Relevant to detecting traffic-flooding attacks that starve priority queues.</p>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-1">FRR — Fast ReRoute</h3>
+        <p class="text-sm text-slate-600">Pre-computed backup LSPs let traffic switch to an alternate path in <strong>&lt; 50 ms</strong> when a link fails — faster than any routing reconvergence. Critical for a resilient backbone.</p>
+      </div>
+    </div>
+    <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+      <p class="text-sm text-slate-600"><strong>Modern evolution — Segment Routing (SR-MPLS):</strong> encodes the whole path as a list of labels ("segments") pushed by the ingress, so core routers need no per-flow signalling state (no LDP/RSVP). Simpler, more scalable; increasingly the default on new backbones. Worth a one-line mention in your NOC defence — it changes <em>how</em> labels are distributed but not the label-switching fundamentals above.</p>
+    </div>
+  </section>
+
+  <!-- 9. NOC -->
+  <section id="noc" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-rose-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">9</span>
+      <h2 class="text-2xl font-bold text-slate-800">🛰️ Watching MPLS — the air-gapped NOC (your BAH model)</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">Now the fundamentals connect to PS#13. A <span class="term">NOC</span> (Network Operations Centre) is the room/software that watches the whole backbone. Your model makes it an <strong>offline AI copilot</strong>: it predicts faults before they happen and flags security threats — all without internet, because a national telecom/space backbone must stay <span class="term">air-gapped</span>.</p>
+
+    <div class="card bg-white border border-slate-200 rounded-2xl p-6 mb-4">
+      <h3 class="font-bold text-slate-800 mb-3">Three telemetry planes (what the NOC ingests)</h3>
+      <div class="grid md:grid-cols-3 gap-3 text-sm">
+        <div class="bg-teal-50 border border-teal-200 rounded-xl p-4"><p class="font-bold text-teal-800">1 · Control plane</p><p class="text-xs text-slate-600 mt-1"><span class="kbd">gNMI</span> + <strong>OpenConfig</strong> models stream device state (labels, LSPs, interfaces, CPU). Vendor-neutral YANG telemetry — the modern replacement for SNMP polling.</p></div>
+        <div class="bg-cyan-50 border border-cyan-200 rounded-xl p-4"><p class="font-bold text-cyan-800">2 · Routing plane</p><p class="text-xs text-slate-600 mt-1"><span class="kbd">BMP</span> (BGP Monitoring Protocol) streams every BGP/VPN route change — the feed that catches hijacks and VPN route leaks.</p></div>
+        <div class="bg-sky-50 border border-sky-200 rounded-xl p-4"><p class="font-bold text-sky-800">3 · Optical plane</p><p class="text-xs text-slate-600 mt-1"><span class="kbd">DWDM</span> optical metrics (pre-FEC BER, power levels) — the physical-layer feed that predicts fibre degradation <em>before</em> a link drops.</p></div>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">The four-stage cascade detector</h3>
+        <ol class="text-sm text-slate-600 space-y-1 list-decimal list-inside">
+          <li><strong>Statistical</strong> — cheap thresholds / z-scores catch obvious spikes.</li>
+          <li><strong>Isolation Forest</strong> — unsupervised outlier detection on multi-metric data.</li>
+          <li><strong>LSTM autoencoder</strong> — learns "normal" time patterns; high reconstruction error = anomaly.</li>
+          <li><strong>Change-point</strong> — detects a regime shift (the moment behaviour changed).</li>
+        </ol>
+        <p class="text-xs text-slate-400 mt-2">Cascade = cheap filters first, expensive models only on survivors. Efficient on a no-GPU / offline box.</p>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2">Why offline + trustworthy</h3>
+        <ul class="text-sm text-slate-600 space-y-1.5">
+          <li>• <strong>Local quantized LLM + RAG</strong> — explains alerts in plain language and cites runbooks, with <em>no</em> cloud call (data never leaves the air gap).</li>
+          <li>• <strong>Tamper-evident forensic log</strong> — SHA-256 hash-chained incident ledger; any edit breaks the chain (verifiable).</li>
+          <li>• <strong>MITRE ATLAS hardening</strong> — protects the AI itself: artifact-integrity hashing, data-poisoning drift checks vs a golden baseline.</li>
+          <li>• <strong>Predict-before-fail (ETTF)</strong> — extrapolates optical BER to the FEC threshold with a calibrated prediction interval (estimated time-to-failure).</li>
+        </ul>
+      </div>
+    </div>
+    <p class="text-xs text-slate-400 mt-3">🛡️ Keep it measured for judges: this is a <em>proof-of-concept</em> that detects modelled threats from telemetry, with stated limits (synthetic/emulated data, signature + anomaly based). Don't claim it beats commercial NMS — claim it's an offline, explainable, tamper-evident copilot for a specific threat set. See your no-overclaiming rule.</p>
+  </section>
+
+  <!-- 10. THREATS -->
+  <section id="threats" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-rose-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">10</span>
+      <h2 class="text-2xl font-bold text-slate-800">🛡️ The six MPLS threats, mapped to the fundamentals</h2>
+    </div>
+    <p class="text-slate-600 mb-5 max-w-3xl">Each PS#13 threat attacks one MPLS mechanism you just learned. This is the table to be able to defend cold in the finale.</p>
+    <div class="card bg-white border border-slate-200 rounded-2xl overflow-hidden mb-4">
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-800 text-white text-xs uppercase"><tr><th class="px-3 py-2 text-left">Threat</th><th class="px-3 py-2 text-left">Attacks which mechanism</th><th class="px-3 py-2 text-left">Telemetry signal that catches it</th></tr></thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="px-3 py-2 font-semibold text-rose-800">Label spoofing</td><td class="px-3 py-2 text-slate-600">Forged MPLS labels injected to misroute / bypass VPN isolation (§2, §4)</td><td class="px-3 py-2 text-slate-600">Unexpected LFIB entries / labels with no signalling origin (gNMI)</td></tr>
+            <tr class="bg-slate-50/60"><td class="px-3 py-2 font-semibold text-rose-800">BGP hijack</td><td class="px-3 py-2 text-slate-600">False route advertisements steal/blackhole traffic (§7 MP-BGP)</td><td class="px-3 py-2 text-slate-600">Sudden origin/AS-path change in the BMP feed</td></tr>
+            <tr><td class="px-3 py-2 font-semibold text-rose-800">BFD session attack</td><td class="px-3 py-2 text-slate-600">Forging/dropping the fast liveness protocol to trigger false failovers (§8 FRR)</td><td class="px-3 py-2 text-slate-600">Abnormal BFD flap rate / timing anomalies</td></tr>
+            <tr class="bg-slate-50/60"><td class="px-3 py-2 font-semibold text-rose-800">VPN route leakage</td><td class="px-3 py-2 text-slate-600">Mis-set Route Targets leak one customer's routes into another VRF (§7 RT/VRF)</td><td class="px-3 py-2 text-slate-600">Route appearing in a VRF whose RT policy forbids it (BMP)</td></tr>
+            <tr><td class="px-3 py-2 font-semibold text-rose-800">Traffic flooding</td><td class="px-3 py-2 text-slate-600">Volumetric overload starving priority queues / links (§8 QoS)</td><td class="px-3 py-2 text-slate-600">Throughput + queue-drop spikes across the cascade detector</td></tr>
+            <tr class="bg-slate-50/60"><td class="px-3 py-2 font-semibold text-rose-800">Honey-LSP tripwire</td><td class="px-3 py-2 text-slate-600"><em>Defensive:</em> a decoy LSP no legit traffic should touch (§6 LSP)</td><td class="px-3 py-2 text-slate-600">Any packet/label activity on the honey-LSP = confirmed intrusion</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card bg-slate-900 text-slate-100 rounded-2xl p-5">
+      <p class="text-sm">Notice the pattern: <strong>every threat is a lie told in the control/routing plane</strong> — a fake label, a fake route, a fake liveness signal — and every defence is <strong>watching the telemetry for a state that shouldn't exist</strong>. That's the whole thesis of your NOC: you can't stop a compromised device from lying, but you <em>can</em> detect when the network's observed state diverges from what legitimate signalling would produce. Observability <em>is</em> the security control.</p>
+    </div>
+  </section>
+
+  <!-- 11. CHEAT -->
+  <section id="cheat" class="sec-anchor">
+    <div class="flex items-center gap-3 mb-4">
+      <span class="bg-teal-600 text-white w-8 h-8 rounded-lg grid place-items-center font-bold">11</span>
+      <h2 class="text-2xl font-bold text-slate-800">Quick cheat sheets</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-4">
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2 text-sm">MPLS acronyms</h3>
+        <ul class="text-xs text-slate-600 space-y-1">
+          <li><strong>LER / PE</strong> — edge router (push/pop)</li>
+          <li><strong>LSR / P</strong> — core router (swap)</li>
+          <li><strong>CE</strong> — customer edge</li>
+          <li><strong>FEC</strong> — forwarding equivalence class</li>
+          <li><strong>LSP</strong> — label-switched path</li>
+          <li><strong>LDP / RSVP-TE</strong> — label distribution</li>
+          <li><strong>LIB / LFIB</strong> — label tables</li>
+          <li><strong>VRF / RD / RT</strong> — VPN separation</li>
+          <li><strong>MP-BGP</strong> — carries VPN routes</li>
+          <li><strong>PHP</strong> — penultimate hop popping</li>
+          <li><strong>FRR</strong> — fast reroute (&lt;50 ms)</li>
+        </ul>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2 text-sm">The packet's journey (recite)</h3>
+        <ol class="text-xs text-slate-600 space-y-1 list-decimal list-inside">
+          <li>CE sends plain IP to <strong>ingress PE</strong></li>
+          <li>PE picks <strong>FEC</strong>, <strong>pushes</strong> label(s)</li>
+          <li>Core <strong>P</strong> routers <strong>swap</strong> the outer label</li>
+          <li>Penultimate P <strong>pops</strong> (PHP)</li>
+          <li><strong>Egress PE</strong> reads inner VPN label → VRF</li>
+          <li>Delivers plain IP to destination CE</li>
+        </ol>
+      </div>
+      <div class="card bg-white border border-slate-200 rounded-2xl p-5">
+        <h3 class="font-bold text-slate-800 mb-2 text-sm">NOC / BAH terms</h3>
+        <ul class="text-xs text-slate-600 space-y-1">
+          <li><strong>gNMI / OpenConfig</strong> — control telemetry</li>
+          <li><strong>BMP</strong> — BGP route monitoring</li>
+          <li><strong>DWDM / pre-FEC BER</strong> — optical health</li>
+          <li><strong>BFD</strong> — fast failure detection</li>
+          <li><strong>ETTF</strong> — estimated time-to-failure</li>
+          <li><strong>MITRE ATLAS</strong> — AI-system threat model</li>
+          <li><strong>Air-gap</strong> — no internet, offline AI</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY -->
+  <section class="card bg-slate-100 border border-slate-200 rounded-2xl p-6">
+    <h2 class="font-bold text-slate-700 mb-2">Why this page exists</h2>
+    <p class="text-sm text-slate-600">The sequel to <a href="how-the-internet-works.html" class="text-teal-700 underline">how-the-internet-works</a>: normal IP forwarding → carrier-grade MPLS. It teaches the MPLS fundamentals that your <strong>PS#13 concept decoder</strong> assumes, then links each concept to the three telemetry planes and six threats of your air-gapped NOC — so you can defend the model from the ground up in the BAH finale. Everything here is standard MPLS; the NOC claims are kept measured per your no-overclaiming rule.</p>
+  </section>
+
+</main>
+
+<footer class="border-t border-slate-200 py-6 text-center text-xs text-slate-400">
+  How MPLS works · from-zero → air-gapped NOC · tick concepts as you teach them back
+</footer>
+
+<script>
+(function(){
+  const KEY = "how-mpls-works-progress";
+  const sections = document.querySelectorAll("main section[id]");
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch(e){ saved = {}; }
+  const items = [];
+  sections.forEach(sec => {
+    const h = sec.querySelector("h2"); if(!h) return;
+    const id = sec.id;
+    const wrap = document.createElement("label");
+    wrap.className = "flex items-center gap-2 ml-auto text-xs font-normal text-slate-400 cursor-pointer select-none";
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.className = "chk"; cb.dataset.id = id; cb.checked = !!saved[id];
+    const span = document.createElement("span"); span.textContent = "I can teach this";
+    wrap.appendChild(cb); wrap.appendChild(span);
+    h.parentElement.classList.add("flex-wrap");
+    h.parentElement.appendChild(wrap);
+    items.push(cb);
+    cb.addEventListener("change", () => { saved[id] = cb.checked; localStorage.setItem(KEY, JSON.stringify(saved)); render(); });
+  });
+  const bar = document.getElementById("bar"), prog = document.getElementById("prog");
+  function render(){
+    const done = items.filter(c => c.checked).length, total = items.length;
+    bar.style.width = (total?Math.round(done/total*100):0) + "%";
+    prog.textContent = done + " / " + total;
+  }
+  document.getElementById("reset").addEventListener("click", () => {
+    saved = {}; localStorage.removeItem(KEY); items.forEach(c => c.checked=false); render();
+  });
+  render();
+})();
+</script>
+</body>
+</html>
